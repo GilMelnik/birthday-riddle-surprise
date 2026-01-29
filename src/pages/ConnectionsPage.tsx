@@ -1,0 +1,262 @@
+import React, { useState, useEffect } from 'react';
+import { useGame } from '@/context/GameContext';
+import { RomanticButton } from '@/components/ui/romantic-button';
+import { ChevronRight, Lightbulb } from 'lucide-react';
+import puzzleData from '@/data/puzzles.json';
+
+interface Group {
+  words: string[];
+  connection: string;
+}
+
+const ConnectionsPage: React.FC = () => {
+  const { state, setCurrentPage, updateConnectionsProgress } = useGame();
+  const { connections: progress } = state.progress;
+  
+  const { words: allWords, groups } = puzzleData.connections as { words: string[]; groups: Group[] };
+  
+  const [availableWords, setAvailableWords] = useState<string[]>([]);
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  const [solvedGroups, setSolvedGroups] = useState<{ group: Group; index: number }[]>([]);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [shakeWords, setShakeWords] = useState<string[]>([]);
+  const [attempts, setAttempts] = useState(progress.attempts);
+  const maxAttempts = 4;
+
+  useEffect(() => {
+    // Restore solved groups
+    const restored = progress.solvedGroups.map(index => ({
+      group: groups[index],
+      index,
+    }));
+    setSolvedGroups(restored);
+    
+    // Set available words (excluding solved)
+    const solvedWords = new Set(progress.solvedGroups.flatMap(i => groups[i].words));
+    setAvailableWords(allWords.filter(w => !solvedWords.has(w)));
+    setAttempts(progress.attempts);
+  }, []);
+
+  const handleWordClick = (word: string) => {
+    if (progress.solved) return;
+    
+    if (selectedWords.includes(word)) {
+      setSelectedWords(selectedWords.filter(w => w !== word));
+    } else if (selectedWords.length < 4) {
+      setSelectedWords([...selectedWords, word]);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (selectedWords.length !== 4) {
+      setMessage({ text: 'בחר 4 מילים', type: 'info' });
+      setTimeout(() => setMessage(null), 1500);
+      return;
+    }
+
+    // Check if this matches any group
+    const matchingGroupIndex = groups.findIndex(group => {
+      const groupSet = new Set(group.words);
+      return selectedWords.every(w => groupSet.has(w)) && selectedWords.length === group.words.length;
+    });
+
+    if (matchingGroupIndex !== -1 && !progress.solvedGroups.includes(matchingGroupIndex)) {
+      // Correct!
+      const newSolvedGroups = [...progress.solvedGroups, matchingGroupIndex];
+      const newSolvedDisplay = [...solvedGroups, { group: groups[matchingGroupIndex], index: matchingGroupIndex }];
+      
+      setSolvedGroups(newSolvedDisplay);
+      setAvailableWords(availableWords.filter(w => !selectedWords.includes(w)));
+      setSelectedWords([]);
+      
+      updateConnectionsProgress({
+        solvedGroups: newSolvedGroups,
+        solved: newSolvedGroups.length === groups.length,
+      });
+      
+      setMessage({ text: `נכון! ${groups[matchingGroupIndex].connection}`, type: 'success' });
+      setTimeout(() => setMessage(null), 2500);
+    } else {
+      // Check if 3 out of 4 are correct
+      let almostCorrect = false;
+      groups.forEach(group => {
+        if (progress.solvedGroups.includes(groups.indexOf(group))) return;
+        const matchCount = selectedWords.filter(w => group.words.includes(w)).length;
+        if (matchCount === 3) {
+          almostCorrect = true;
+        }
+      });
+
+      setShakeWords(selectedWords);
+      setTimeout(() => setShakeWords([]), 500);
+
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      updateConnectionsProgress({ attempts: newAttempts });
+
+      if (almostCorrect) {
+        setMessage({ text: 'כמעט! שלושה מתוך ארבעה נכונים', type: 'info' });
+      } else {
+        setMessage({ text: 'לא נכון, נסה שוב!', type: 'error' });
+      }
+      setTimeout(() => setMessage(null), 2000);
+      setSelectedWords([]);
+    }
+  };
+
+  const handleHint = () => {
+    if (progress.hintsUsed >= 2) {
+      setMessage({ text: 'כבר השתמשת ב-2 רמזים!', type: 'error' });
+      setTimeout(() => setMessage(null), 1500);
+      return;
+    }
+
+    // Find first unsolved group
+    const unsolvedGroupIndex = groups.findIndex((_, i) => !progress.solvedGroups.includes(i));
+    if (unsolvedGroupIndex === -1) return;
+
+    const group = groups[unsolvedGroupIndex];
+    const availableFromGroup = group.words.filter(w => availableWords.includes(w));
+    
+    // Highlight 2 words from this group
+    const hintWords = availableFromGroup.slice(0, 2);
+    setSelectedWords(hintWords);
+    
+    updateConnectionsProgress({ hintsUsed: progress.hintsUsed + 1 });
+    setMessage({ text: 'הנה רמז - שתי מילים מאותה קבוצה!', type: 'info' });
+    setTimeout(() => setMessage(null), 2000);
+  };
+
+  const remainingAttempts = maxAttempts - attempts;
+
+  return (
+    <div className="min-h-screen romantic-gradient px-4 py-6">
+      <div className="max-w-md mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setCurrentPage('hub')}
+            className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+            חזרה
+          </button>
+          <h1 className="text-2xl font-serif font-bold text-foreground">
+            🔗 מה הקשר?
+          </h1>
+          <div className="w-16" />
+        </div>
+
+        {/* Instructions */}
+        <p className="text-center text-muted-foreground text-sm mb-4">
+          מצא 4 קבוצות של 4 מילים עם קשר משותף
+        </p>
+
+        {/* Attempts indicator */}
+        <div className="flex justify-center gap-2 mb-4">
+          {Array.from({ length: maxAttempts }).map((_, i) => (
+            <div
+              key={i}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                i < remainingAttempts ? 'bg-primary' : 'bg-muted'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Message */}
+        {message && (
+          <div
+            className={`text-center p-3 rounded-lg mb-4 animate-scale-in ${
+              message.type === 'success'
+                ? 'bg-green-100 text-green-700'
+                : message.type === 'error'
+                ? 'bg-red-100 text-red-700'
+                : 'bg-secondary text-secondary-foreground'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        {/* Solved groups */}
+        {solvedGroups.map(({ group, index }) => (
+          <div
+            key={index}
+            className="connection-word connection-word-solved mb-3 animate-scale-in"
+          >
+            <div className="font-bold text-accent mb-1">{group.connection}</div>
+            <div className="text-sm text-secondary-foreground">
+              {group.words.join(' • ')}
+            </div>
+          </div>
+        ))}
+
+        {/* Word grid */}
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          {availableWords.map((word) => (
+            <button
+              key={word}
+              onClick={() => handleWordClick(word)}
+              className={`connection-word ${
+                selectedWords.includes(word)
+                  ? 'connection-word-selected'
+                  : 'connection-word-default'
+              } ${shakeWords.includes(word) ? 'shake' : ''}`}
+            >
+              {word}
+            </button>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        {!progress.solved && availableWords.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <RomanticButton
+                variant="primary"
+                size="sm"
+                className="flex-1"
+                onClick={handleSubmit}
+                disabled={selectedWords.length !== 4}
+              >
+                אישור
+              </RomanticButton>
+              <RomanticButton
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setSelectedWords([])}
+              >
+                נקה בחירה
+              </RomanticButton>
+            </div>
+            <RomanticButton
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              onClick={handleHint}
+              disabled={progress.hintsUsed >= 2}
+            >
+              <Lightbulb className="w-4 h-4 ml-2" />
+              רמז ({2 - progress.hintsUsed} נותרו)
+            </RomanticButton>
+          </div>
+        )}
+
+        {progress.solved && (
+          <RomanticButton
+            variant="gold"
+            size="default"
+            className="w-full"
+            onClick={() => setCurrentPage('hub')}
+          >
+            הושלם! חזרה למרכז 🎉
+          </RomanticButton>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ConnectionsPage;
