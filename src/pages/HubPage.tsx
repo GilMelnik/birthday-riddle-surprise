@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
-import { Check, Lock, Loader2, RotateCcw, Gift } from 'lucide-react';
+import { Check, Lock, Clock, RotateCcw, Gift } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ const PuzzleCard: React.FC<PuzzleCardProps> = ({ title, emoji, status, onClick }
       case 'solved':
         return <Check className="w-6 h-6 text-green-500" />;
       case 'in-progress':
-        return <Loader2 className="w-6 h-6 text-accent animate-spin" />;
+        return <Clock className="w-6 h-6 text-accent" />;
       default:
         return <Lock className="w-6 h-6 text-muted-foreground" />;
     }
@@ -47,8 +47,8 @@ const PuzzleCard: React.FC<PuzzleCardProps> = ({ title, emoji, status, onClick }
   return (
     <button
       onClick={onClick}
-      className={`puzzle-box w-full text-right transition-all duration-300 ${
-        status === 'solved' ? 'border-green-400 bg-green-50/50' : ''
+      className={`puzzle-box w-full text-right ${
+        status === 'solved' ? 'border-green-600 bg-green-900/20' : ''
       }`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -78,7 +78,7 @@ const HubPage: React.FC = () => {
   return (
     <div className="min-h-screen romantic-gradient px-4 py-8 relative">
       <div className="max-w-md mx-auto">
-        <div className="text-center mb-8 animate-fade-in">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
             מרכז החידות 🎂
           </h1>
@@ -90,7 +90,7 @@ const HubPage: React.FC = () => {
             {puzzles.map((_, i) => (
               <div
                 key={i}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                className={`w-3 h-3 rounded-full ${
                   i < completedCount ? 'bg-green-500' : 'bg-muted'
                 }`}
               />
@@ -102,12 +102,8 @@ const HubPage: React.FC = () => {
         </div>
 
         <div className="space-y-4 mb-8">
-          {puzzles.map((puzzle, index) => (
-            <div
-              key={puzzle.id}
-              className="animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
+          {puzzles.map((puzzle) => (
+            <div key={puzzle.id}>
               <PuzzleCard
                 title={puzzle.title}
                 emoji={puzzle.emoji}
@@ -119,11 +115,11 @@ const HubPage: React.FC = () => {
         </div>
 
         {state.allCompleted && (
-          <div className="mb-8 animate-scale-in">
+          <div className="mb-8">
             <RomanticButton
               variant="surprise"
               size="lg"
-              className="w-full"
+              className="w-full pointer-events-auto"
               onClick={() => setCurrentPage('final')}
             >
               <Gift className="w-6 h-6" />

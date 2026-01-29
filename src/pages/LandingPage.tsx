@@ -1,24 +1,21 @@
 import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
-import FloatingHearts from '@/components/FloatingHearts';
 
 const LandingPage: React.FC = () => {
   const { setCurrentPage } = useGame();
 
   return (
     <div className="min-h-screen romantic-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
-      <FloatingHearts count={15} />
-      
-      <div className="z-10 text-center max-w-md mx-auto animate-fade-in">
+      <div className="z-10 text-center max-w-md mx-auto">
         <div className="mb-8">
-          <span className="text-6xl animate-float inline-block">💕</span>
+          <span className="text-6xl inline-block">💕</span>
         </div>
         
         <h1 className="text-4xl sm:text-5xl font-serif font-bold text-foreground mb-6 leading-tight">
           הפתעה מיוחדת
           <br />
-          <span className="text-gradient-rose">בשבילך</span>
+          <span className="text-gradient-purple">בשבילך</span>
         </h1>
         
         <p className="text-lg sm:text-xl text-muted-foreground mb-4 leading-relaxed">

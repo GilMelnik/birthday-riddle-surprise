@@ -3,22 +3,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const romanticButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-95",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-lg font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 animate-pulse-glow",
+          "bg-primary text-primary-foreground shadow-lg",
         secondary:
-          "bg-secondary text-secondary-foreground border-2 border-accent hover:bg-accent hover:text-accent-foreground",
+          "bg-secondary text-secondary-foreground border-2 border-accent",
         gold:
-          "gold-shimmer text-accent-foreground shadow-lg hover:shadow-xl hover:scale-105",
+          "bg-gold text-accent-foreground shadow-lg",
         outline:
-          "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground",
+          "border-2 border-primary text-primary",
         ghost:
-          "text-primary hover:bg-primary/10",
+          "text-primary",
         surprise:
-          "bg-gradient-to-r from-primary via-rose to-accent text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 animate-pulse-glow",
+          "bg-gradient-to-r from-primary via-deep-purple-light to-accent text-primary-foreground shadow-lg",
       },
       size: {
         default: "h-14 px-8 py-4",

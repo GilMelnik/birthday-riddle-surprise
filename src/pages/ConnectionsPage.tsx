@@ -9,6 +9,8 @@ interface Group {
   connection: string;
 }
 
+const GROUP_COLORS = ['connection-solved-orange', 'connection-solved-green', 'connection-solved-red', 'connection-solved-yellow'];
+
 const ConnectionsPage: React.FC = () => {
   const { state, setCurrentPage, updateConnectionsProgress } = useGame();
   const { connections: progress } = state.progress;
@@ -17,17 +19,17 @@ const ConnectionsPage: React.FC = () => {
   
   const [availableWords, setAvailableWords] = useState<string[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
-  const [solvedGroups, setSolvedGroups] = useState<{ group: Group; index: number }[]>([]);
+  const [solvedGroups, setSolvedGroups] = useState<{ group: Group; index: number; colorClass: string }[]>([]);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [shakeWords, setShakeWords] = useState<string[]>([]);
   const [attempts, setAttempts] = useState(progress.attempts);
   const maxAttempts = 4;
 
   useEffect(() => {
-    // Restore solved groups
-    const restored = progress.solvedGroups.map(index => ({
+    // Restore solved groups with colors
+    const restored = progress.solvedGroups.map((index, i) => ({
       group: groups[index],
       index,
+      colorClass: GROUP_COLORS[i % GROUP_COLORS.length],
     }));
     setSolvedGroups(restored);
     
@@ -63,7 +65,8 @@ const ConnectionsPage: React.FC = () => {
     if (matchingGroupIndex !== -1 && !progress.solvedGroups.includes(matchingGroupIndex)) {
       // Correct!
       const newSolvedGroups = [...progress.solvedGroups, matchingGroupIndex];
-      const newSolvedDisplay = [...solvedGroups, { group: groups[matchingGroupIndex], index: matchingGroupIndex }];
+      const colorClass = GROUP_COLORS[solvedGroups.length % GROUP_COLORS.length];
+      const newSolvedDisplay = [...solvedGroups, { group: groups[matchingGroupIndex], index: matchingGroupIndex, colorClass }];
       
       setSolvedGroups(newSolvedDisplay);
       setAvailableWords(availableWords.filter(w => !selectedWords.includes(w)));
@@ -86,9 +89,6 @@ const ConnectionsPage: React.FC = () => {
           almostCorrect = true;
         }
       });
-
-      setShakeWords(selectedWords);
-      setTimeout(() => setShakeWords([]), 500);
 
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -136,7 +136,7 @@ const ConnectionsPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setCurrentPage('hub')}
-            className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1 text-primary"
           >
             <ChevronRight className="w-5 h-5" />
             חזרה
@@ -157,7 +157,7 @@ const ConnectionsPage: React.FC = () => {
           {Array.from({ length: maxAttempts }).map((_, i) => (
             <div
               key={i}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-3 h-3 rounded-full ${
                 i < remainingAttempts ? 'bg-primary' : 'bg-muted'
               }`}
             />
@@ -167,11 +167,11 @@ const ConnectionsPage: React.FC = () => {
         {/* Message */}
         {message && (
           <div
-            className={`text-center p-3 rounded-lg mb-4 animate-scale-in ${
+            className={`text-center p-3 rounded-lg mb-4 ${
               message.type === 'success'
-                ? 'bg-green-100 text-green-700'
+                ? 'bg-green-900/30 text-green-400'
                 : message.type === 'error'
-                ? 'bg-red-100 text-red-700'
+                ? 'bg-red-900/30 text-red-400'
                 : 'bg-secondary text-secondary-foreground'
             }`}
           >
@@ -180,13 +180,13 @@ const ConnectionsPage: React.FC = () => {
         )}
 
         {/* Solved groups */}
-        {solvedGroups.map(({ group, index }) => (
+        {solvedGroups.map(({ group, index, colorClass }) => (
           <div
             key={index}
-            className="connection-word connection-word-solved mb-3 animate-scale-in"
+            className={`connection-word connection-word-solved ${colorClass} mb-3`}
           >
-            <div className="font-bold text-accent mb-1">{group.connection}</div>
-            <div className="text-sm text-secondary-foreground">
+            <div className="font-bold mb-1">{group.connection}</div>
+            <div className="text-sm opacity-90">
               {group.words.join(' • ')}
             </div>
           </div>
@@ -202,7 +202,7 @@ const ConnectionsPage: React.FC = () => {
                 selectedWords.includes(word)
                   ? 'connection-word-selected'
                   : 'connection-word-default'
-              } ${shakeWords.includes(word) ? 'shake' : ''}`}
+              }`}
             >
               {word}
             </button>
