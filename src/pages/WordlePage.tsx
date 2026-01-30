@@ -28,11 +28,11 @@ const REGULAR_FORMS: Record<string, string> = {
   'ך': 'כ',
 };
 
-// Keyboard layout with letters in reversed order (RTL display)
+// Keyboard layout - NO final letters, RTL display order
 const HEBREW_KEYBOARD = [
-  ['ק', 'ר', 'א', 'ט', 'ו', 'פ'],
-  ['ש', 'ד', 'ג', 'כ', 'ע', 'י', 'ח', 'ל'],
-  ['ז', 'ס', 'ב', 'ה', 'נ', 'מ', 'צ', 'ת'],
+  ['פ', 'ו', 'ט', 'א', 'ר', 'ק'],
+  ['ל', 'ח', 'י', 'ע', 'כ', 'ג', 'ד', 'ש'],
+  ['ת', 'צ', 'מ', 'נ', 'ה', 'ב', 'ס', 'ז'],
 ];
 
 const WordlePage: React.FC = () => {
@@ -44,7 +44,8 @@ const WordlePage: React.FC = () => {
   const maxAttempts = 6;
 
   const [attempts, setAttempts] = useState<LetterState[][]>([]);
-  const [currentAttempt, setCurrentAttempt] = useState<string[]>([]);
+  const [currentAttempt, setCurrentAttempt] = useState<string[]>(Array(wordLength).fill(''));
+  const [cursorPosition, setCursorPosition] = useState(wordLength - 1); // Start at rightmost
   const [keyboardStatus, setKeyboardStatus] = useState<Record<string, LetterStatus>>({});
   const [message, setMessage] = useState<string | null>(null);
 
@@ -120,11 +121,11 @@ const WordlePage: React.FC = () => {
     return result;
   };
 
-  // Convert word with final letters in last position (index 0 in our RTL array)
+  // Apply final forms to the last position (index wordLength - 1)
   const applyFinalForms = (letters: string[]): string => {
     return letters.map((letter, i) => {
-      // In RTL array, index 0 is the last letter visually (rightmost becomes leftmost in the word)
-      if (i === 0 && FINAL_FORMS[letter]) {
+      // Last position in logical order
+      if (i === wordLength - 1 && FINAL_FORMS[letter]) {
         return FINAL_FORMS[letter];
       }
       return letter;
@@ -134,19 +135,44 @@ const WordlePage: React.FC = () => {
   const handleKeyPress = useCallback((letter: string) => {
     if (progress.solved || attempts.length >= maxAttempts) return;
     
-    if (currentAttempt.length < wordLength) {
-      // Insert at the beginning to fill from right to left (RTL)
-      setCurrentAttempt(prev => [letter, ...prev]);
+    // Find rightmost empty cell
+    let insertPos = -1;
+    for (let i = wordLength - 1; i >= 0; i--) {
+      if (!currentAttempt[i]) {
+        insertPos = i;
+        break;
+      }
+    }
+    
+    if (insertPos !== -1) {
+      const newAttempt = [...currentAttempt];
+      newAttempt[insertPos] = letter;
+      setCurrentAttempt(newAttempt);
+      setCursorPosition(insertPos - 1);
     }
   }, [currentAttempt, wordLength, progress.solved, attempts.length]);
 
   const handleBackspace = useCallback(() => {
-    // Remove from beginning (last entered letter in RTL)
-    setCurrentAttempt(prev => prev.slice(1));
-  }, []);
+    // Find leftmost filled cell (most recently entered in RTL)
+    let removePos = -1;
+    for (let i = 0; i < wordLength; i++) {
+      if (currentAttempt[i]) {
+        removePos = i;
+        break;
+      }
+    }
+    
+    if (removePos !== -1) {
+      const newAttempt = [...currentAttempt];
+      newAttempt[removePos] = '';
+      setCurrentAttempt(newAttempt);
+      setCursorPosition(removePos);
+    }
+  }, [currentAttempt, wordLength]);
 
   const handleSubmit = useCallback(() => {
-    if (currentAttempt.length !== wordLength) {
+    const filledCount = currentAttempt.filter(l => l).length;
+    if (filledCount !== wordLength) {
       setMessage('הכנס מילה בת ' + wordLength + ' אותיות');
       setTimeout(() => setMessage(null), 1500);
       return;
@@ -173,7 +199,7 @@ const WordlePage: React.FC = () => {
       attempts: [...progress.attempts, wordWithFinals],
     });
 
-    // Check win condition
+    // Check win condition - compare normalized words directly
     if (normalizeWord(wordWithFinals) === normalizeWord(targetWord)) {
       updateWordleProgress({ solved: true });
       setMessage('מצוין! פיצחת את המילה! 🎉');
@@ -181,7 +207,8 @@ const WordlePage: React.FC = () => {
       setMessage(`המילה הייתה: ${targetWord}`);
     }
 
-    setCurrentAttempt([]);
+    setCurrentAttempt(Array(wordLength).fill(''));
+    setCursorPosition(wordLength - 1);
   }, [currentAttempt, wordLength, attempts, keyboardStatus, progress.attempts]);
 
   // Keyboard event listener
@@ -223,12 +250,13 @@ const WordlePage: React.FC = () => {
     }
   };
 
-  // Get display letter for current row (with final form if last position)
+  // Get display letter with final form for last position
   const getDisplayLetter = (index: number): string => {
     const letter = currentAttempt[index];
     if (!letter) return '';
-    // In our RTL array, index 0 is the last letter visually
-    if (index === 0 && currentAttempt.length === wordLength && FINAL_FORMS[letter]) {
+    // Apply final form only to last position
+    const filledCount = currentAttempt.filter(l => l).length;
+    if (index === wordLength - 1 && filledCount === wordLength && FINAL_FORMS[letter]) {
       return FINAL_FORMS[letter];
     }
     return letter;

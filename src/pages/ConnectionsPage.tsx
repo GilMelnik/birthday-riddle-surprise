@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ChevronRight, Lightbulb } from 'lucide-react';
@@ -11,11 +11,76 @@ interface Group {
 
 const GROUP_COLORS = ['connection-solved-orange', 'connection-solved-green', 'connection-solved-red', 'connection-solved-yellow'];
 
+// Shuffle array using Fisher-Yates algorithm
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Distribute words so that no row has more than one word from the same group
+const distributeWordsAcrossGrid = (words: string[], groups: Group[]): string[] => {
+  // Create a map of word to group index
+  const wordToGroup: Record<string, number> = {};
+  groups.forEach((group, groupIndex) => {
+    group.words.forEach(word => {
+      wordToGroup[word] = groupIndex;
+    });
+  });
+
+  // Shuffle words first
+  const shuffledWords = shuffleArray(words);
+  
+  // Create 4 rows, each with 4 slots
+  const rows: string[][] = [[], [], [], []];
+  const rowGroupCounts: Set<number>[] = [new Set(), new Set(), new Set(), new Set()];
+  
+  // Try to place each word in a row that doesn't have a word from the same group
+  for (const word of shuffledWords) {
+    const groupIndex = wordToGroup[word];
+    let placed = false;
+    
+    // Try each row in random order
+    const rowOrder = shuffleArray([0, 1, 2, 3]);
+    for (const rowIndex of rowOrder) {
+      // Check if row has space and doesn't already have a word from this group
+      if (rows[rowIndex].length < 4 && !rowGroupCounts[rowIndex].has(groupIndex)) {
+        rows[rowIndex].push(word);
+        rowGroupCounts[rowIndex].add(groupIndex);
+        placed = true;
+        break;
+      }
+    }
+    
+    // If couldn't place optimally, place in any row with space
+    if (!placed) {
+      for (const rowIndex of rowOrder) {
+        if (rows[rowIndex].length < 4) {
+          rows[rowIndex].push(word);
+          placed = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Shuffle within each row for extra randomness
+  return rows.map(row => shuffleArray(row)).flat();
+};
+
 const ConnectionsPage: React.FC = () => {
   const { state, setCurrentPage, updateConnectionsProgress } = useGame();
   const { connections: progress } = state.progress;
   
   const { words: allWords, groups } = puzzleData.connections as { words: string[]; groups: Group[] };
+  
+  // Shuffle words on initial load, distributing groups across rows
+  const shuffledWords = useMemo(() => {
+    return distributeWordsAcrossGrid(allWords, groups);
+  }, []);
   
   const [availableWords, setAvailableWords] = useState<string[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
@@ -33,11 +98,11 @@ const ConnectionsPage: React.FC = () => {
     }));
     setSolvedGroups(restored);
     
-    // Set available words (excluding solved)
+    // Set available words (excluding solved), maintaining shuffled order
     const solvedWords = new Set(progress.solvedGroups.flatMap(i => groups[i].words));
-    setAvailableWords(allWords.filter(w => !solvedWords.has(w)));
+    setAvailableWords(shuffledWords.filter(w => !solvedWords.has(w)));
     setAttempts(progress.attempts);
-  }, []);
+  }, [shuffledWords]);
 
   const handleWordClick = (word: string) => {
     if (progress.solved) return;
