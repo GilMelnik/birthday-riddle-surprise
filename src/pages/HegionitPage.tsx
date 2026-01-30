@@ -121,25 +121,27 @@ const HegionitPage: React.FC = () => {
       return;
     }
 
-    // Find empty positions that haven't been locked
-    const emptyPositions = inputLetters
-      .map((letter, i) => ({ letter, index: i }))
-      .filter(({ letter, index }) => !letter && !lockedIndices.has(index));
+    // Find FIRST empty position from RIGHT to LEFT (highest index first in RTL)
+    let firstEmptyIndex = -1;
+    for (let i = inputLetters.length - 1; i >= 0; i--) {
+      if (!inputLetters[i] && !lockedIndices.has(i)) {
+        firstEmptyIndex = i;
+        break;
+      }
+    }
 
-    if (emptyPositions.length === 0) {
+    if (firstEmptyIndex === -1) {
       setMessage({ type: 'error', text: 'אין תיבות ריקות!' });
       setTimeout(() => setMessage(null), 2000);
       return;
     }
-
-    const randomPos = emptyPositions[Math.floor(Math.random() * emptyPositions.length)];
     const newLetters = [...inputLetters];
-    newLetters[randomPos.index] = currentRiddle.answer[randomPos.index];
+    newLetters[firstEmptyIndex] = currentRiddle.answer[firstEmptyIndex];
     setInputLetters(newLetters);
     
     // Lock this position
     const newLocked = new Set(lockedIndices);
-    newLocked.add(randomPos.index);
+    newLocked.add(firstEmptyIndex);
     setLockedIndices(newLocked);
 
     const newHintsUsed = [...progress.hintsUsed];
@@ -159,9 +161,12 @@ const HegionitPage: React.FC = () => {
   };
 
   const navigateRiddle = (direction: 'prev' | 'next') => {
-    const newIndex = direction === 'prev' 
-      ? Math.max(0, currentRiddleIndex - 1)
-      : Math.min(riddles.length - 1, currentRiddleIndex + 1);
+    let newIndex;
+    if (direction === 'next') {
+      newIndex = (currentRiddleIndex + 1) % riddles.length;
+    } else {
+      newIndex = (currentRiddleIndex - 1 + riddles.length) % riddles.length;
+    }
     updateHegionitProgress({ currentRiddle: newIndex });
   };
 
@@ -300,9 +305,8 @@ const HegionitPage: React.FC = () => {
         {/* Navigation arrows */}
         <div className="flex justify-between items-center">
           <button
-            onClick={() => navigateRiddle('next')}
-            disabled={currentRiddleIndex === riddles.length - 1}
-            className="p-3 rounded-full bg-card border border-border disabled:opacity-30"
+            onClick={() => navigateRiddle('prev')}
+            className="p-3 rounded-full bg-card border border-border"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -318,9 +322,8 @@ const HegionitPage: React.FC = () => {
           )}
           
           <button
-            onClick={() => navigateRiddle('prev')}
-            disabled={currentRiddleIndex === 0}
-            className="p-3 rounded-full bg-card border border-border disabled:opacity-30"
+            onClick={() => navigateRiddle('next')}
+            className="p-3 rounded-full bg-card border border-border"
           >
             <ArrowRight className="w-6 h-6" />
           </button>

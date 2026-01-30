@@ -28,11 +28,11 @@ const REGULAR_FORMS: Record<string, string> = {
   'ך': 'כ',
 };
 
-// New keyboard layout without final letters (RTL display)
+// Keyboard layout with letters in reversed order (RTL display)
 const HEBREW_KEYBOARD = [
-  ['פ', 'ו', 'ט', 'א', 'ר', 'ק'],
-  ['ל', 'ח', 'י', 'ע', 'כ', 'ג', 'ד', 'ש'],
-  ['ת', 'צ', 'מ', 'נ', 'ה', 'ב', 'ס', 'ז'],
+  ['ק', 'ר', 'א', 'ט', 'ו', 'פ'],
+  ['ש', 'ד', 'ג', 'כ', 'ע', 'י', 'ח', 'ל'],
+  ['ז', 'ס', 'ב', 'ה', 'נ', 'מ', 'צ', 'ת'],
 ];
 
 const WordlePage: React.FC = () => {
@@ -120,10 +120,11 @@ const WordlePage: React.FC = () => {
     return result;
   };
 
-  // Convert word with final letters in last position
+  // Convert word with final letters in last position (index 0 in our RTL array)
   const applyFinalForms = (letters: string[]): string => {
     return letters.map((letter, i) => {
-      if (i === letters.length - 1 && FINAL_FORMS[letter]) {
+      // In RTL array, index 0 is the last letter visually (rightmost becomes leftmost in the word)
+      if (i === 0 && FINAL_FORMS[letter]) {
         return FINAL_FORMS[letter];
       }
       return letter;
@@ -134,12 +135,14 @@ const WordlePage: React.FC = () => {
     if (progress.solved || attempts.length >= maxAttempts) return;
     
     if (currentAttempt.length < wordLength) {
-      setCurrentAttempt(prev => [...prev, letter]);
+      // Insert at the beginning to fill from right to left (RTL)
+      setCurrentAttempt(prev => [letter, ...prev]);
     }
   }, [currentAttempt, wordLength, progress.solved, attempts.length]);
 
   const handleBackspace = useCallback(() => {
-    setCurrentAttempt(prev => prev.slice(0, -1));
+    // Remove from beginning (last entered letter in RTL)
+    setCurrentAttempt(prev => prev.slice(1));
   }, []);
 
   const handleSubmit = useCallback(() => {
@@ -224,7 +227,8 @@ const WordlePage: React.FC = () => {
   const getDisplayLetter = (index: number): string => {
     const letter = currentAttempt[index];
     if (!letter) return '';
-    if (index === wordLength - 1 && currentAttempt.length === wordLength && FINAL_FORMS[letter]) {
+    // In our RTL array, index 0 is the last letter visually
+    if (index === 0 && currentAttempt.length === wordLength && FINAL_FORMS[letter]) {
       return FINAL_FORMS[letter];
     }
     return letter;
