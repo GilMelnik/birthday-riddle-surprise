@@ -19,26 +19,37 @@ const HegionitPage: React.FC = () => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    const savedAnswer = progress.answers[currentRiddleIndex] || '';
-    const newLetters = savedAnswer.split('').concat(Array(currentRiddle.answer.length - savedAnswer.length).fill(''));
-    setInputLetters(newLetters);
+    const answerLength = currentRiddle.answer.length;
+    const newLetters = Array(answerLength).fill('');
     
-    // Restore locked indices from progress
-    const locked = new Set<number>();
+    // Restore locked indices and their letters from progress (exact positions)
     const savedLocked = progress.lockedIndices?.[currentRiddleIndex] || [];
-    // Restore locked indices from saved progress
+    const locked = new Set<number>();
+    
+    // First, restore hint letters at their exact stored positions
     savedLocked.forEach((i: number) => {
-      if (newLetters[i]) {
+      if (i >= 0 && i < answerLength) {
+        newLetters[i] = currentRiddle.answer[i];
         locked.add(i);
       }
     });
+    
+    // Then restore user-typed letters from saved answer (only non-locked positions)
+    const savedAnswer = progress.answers[currentRiddleIndex] || '';
+    for (let i = 0; i < Math.min(savedAnswer.length, answerLength); i++) {
+      if (!locked.has(i) && savedAnswer[i]) {
+        newLetters[i] = savedAnswer[i];
+      }
+    }
+    
+    setInputLetters(newLetters);
     setLockedIndices(locked);
     setMessage(null);
   }, [currentRiddleIndex, currentRiddle.answer.length]);
 
   const handleLetterChange = (index: number, value: string) => {
     if (progress.solved[currentRiddleIndex]) return;
-    if (lockedIndices.has(index)) return; // Cannot modify locked letters
+    if (lockedIndices.has(index)) return;
     
     const newLetters = [...inputLetters];
     newLetters[index] = value.slice(-1);
@@ -50,9 +61,8 @@ const HegionitPage: React.FC = () => {
       ),
     });
 
-    // Auto-focus next box to the LEFT (RTL order) - index - 1
+    // Auto-focus next empty box to the LEFT (lower index in RTL visual order)
     if (value && index > 0) {
-      // Find the next unlocked box to the left
       for (let nextIndex = index - 1; nextIndex >= 0; nextIndex--) {
         if (!lockedIndices.has(nextIndex) && !newLetters[nextIndex]) {
           inputRefs.current[nextIndex]?.focus();
@@ -302,10 +312,10 @@ const HegionitPage: React.FC = () => {
           )}
         </div>
 
-        {/* Navigation arrows */}
+        {/* Navigation arrows - Left arrow = prev, Right arrow = next */}
         <div className="flex justify-between items-center">
           <button
-            onClick={() => navigateRiddle('prev')}
+            onClick={() => navigateRiddle('next')}
             className="p-3 rounded-full bg-card border border-border"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -322,7 +332,7 @@ const HegionitPage: React.FC = () => {
           )}
           
           <button
-            onClick={() => navigateRiddle('next')}
+            onClick={() => navigateRiddle('prev')}
             className="p-3 rounded-full bg-card border border-border"
           >
             <ArrowRight className="w-6 h-6" />
