@@ -30,9 +30,9 @@ const REGULAR_FORMS: Record<string, string> = {
 
 // Keyboard layout - NO final letters, RTL display order
 const HEBREW_KEYBOARD = [
-  ['פ', 'ו', 'ט', 'א', 'ר', 'ק'],
-  ['ל', 'ח', 'י', 'ע', 'כ', 'ג', 'ד', 'ש'],
-  ['ת', 'צ', 'מ', 'נ', 'ה', 'ב', 'ס', 'ז'],
+  ['ק', 'ר', 'א', 'ט', 'ו', 'פ'],
+  ['ש', 'ד', 'ג', 'כ', 'ע', 'י', 'ח', 'ל'],
+  ['ז', 'ס', 'ב', 'ה', 'נ', 'מ', 'צ', 'ת'],
 ];
 
 const WordlePage: React.FC = () => {
