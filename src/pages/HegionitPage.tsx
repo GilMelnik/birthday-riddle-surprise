@@ -22,11 +22,11 @@ const HegionitPage: React.FC = () => {
     const answerLength = currentRiddle.answer.length;
     const newLetters = Array(answerLength).fill('');
     
-    // Restore locked indices and their letters from progress (exact positions)
+    // Restore ONLY hinted indices - these are the boxes that should be locked and filled
     const savedLocked = progress.lockedIndices?.[currentRiddleIndex] || [];
     const locked = new Set<number>();
     
-    // First, restore hint letters at their exact stored positions
+    // ONLY fill boxes that were explicitly revealed as hints
     savedLocked.forEach((i: number) => {
       if (i >= 0 && i < answerLength) {
         newLetters[i] = currentRiddle.answer[i];
@@ -34,13 +34,8 @@ const HegionitPage: React.FC = () => {
       }
     });
     
-    // Then restore user-typed letters from saved answer (only non-locked positions)
-    const savedAnswer = progress.answers[currentRiddleIndex] || '';
-    for (let i = 0; i < Math.min(savedAnswer.length, answerLength); i++) {
-      if (!locked.has(i) && savedAnswer[i]) {
-        newLetters[i] = savedAnswer[i];
-      }
-    }
+    // Do NOT restore user-typed letters from savedAnswer - they should be empty on reload
+    // Only hinted letters persist
     
     setInputLetters(newLetters);
     setLockedIndices(locked);
@@ -61,7 +56,7 @@ const HegionitPage: React.FC = () => {
       ),
     });
 
-    // Auto-focus next empty box to the LEFT (lower index in RTL visual order)
+    // Auto-focus next empty box (in visual RTL: move left means lower index)
     if (value && index > 0) {
       for (let nextIndex = index - 1; nextIndex >= 0; nextIndex--) {
         if (!lockedIndices.has(nextIndex) && !newLetters[nextIndex]) {
@@ -92,10 +87,12 @@ const HegionitPage: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    const answer = inputLetters.join('');
+    // Build the typed word in logical order (index 0 → last) - NO reversing
+    const typedWord = inputLetters.join('');
     setTries(prev => prev + 1);
     
-    if (answer === currentRiddle.answer) {
+    // Direct comparison - no string reversal
+    if (typedWord === currentRiddle.answer) {
       const newSolved = [...progress.solved];
       newSolved[currentRiddleIndex] = true;
       updateHegionitProgress({ solved: newSolved });
@@ -312,10 +309,10 @@ const HegionitPage: React.FC = () => {
           )}
         </div>
 
-        {/* Navigation arrows - Left arrow = prev, Right arrow = next */}
+        {/* Navigation arrows - Icons match visual direction */}
         <div className="flex justify-between items-center">
           <button
-            onClick={() => navigateRiddle('next')}
+            onClick={() => navigateRiddle('prev')}
             className="p-3 rounded-full bg-card border border-border"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -332,7 +329,7 @@ const HegionitPage: React.FC = () => {
           )}
           
           <button
-            onClick={() => navigateRiddle('prev')}
+            onClick={() => navigateRiddle('next')}
             className="p-3 rounded-full bg-card border border-border"
           >
             <ArrowRight className="w-6 h-6" />

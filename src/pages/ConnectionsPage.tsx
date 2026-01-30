@@ -165,7 +165,8 @@ const ConnectionsPage: React.FC = () => {
         setMessage({ text: 'לא נכון, נסה שוב!', type: 'error' });
       }
       setTimeout(() => setMessage(null), 2000);
-      setSelectedWords([]);
+      // DO NOT clear selection on wrong answer - user must manually change
+      // setSelectedWords([]);
     }
   };
 

@@ -121,11 +121,20 @@ const WordlePage: React.FC = () => {
     return result;
   };
 
-  // Apply final forms to the last position (index wordLength - 1)
+  // Apply final forms ONLY to the LAST FILLED position (not just index 4)
   const applyFinalForms = (letters: string[]): string => {
+    // Find the last filled position (leftmost visually in RTL, which is lowest index with content)
+    let lastFilledIndex = -1;
+    for (let i = 0; i < letters.length; i++) {
+      if (letters[i]) {
+        lastFilledIndex = i;
+        break; // First filled from left (index 0) is the last letter visually in RTL
+      }
+    }
+    
     return letters.map((letter, i) => {
-      // Last position in logical order
-      if (i === wordLength - 1 && FINAL_FORMS[letter]) {
+      // Apply final form only to the last filled position (index 0 when full in RTL fill order)
+      if (i === lastFilledIndex && FINAL_FORMS[letter]) {
         return FINAL_FORMS[letter];
       }
       return letter;
@@ -199,7 +208,8 @@ const WordlePage: React.FC = () => {
       attempts: [...progress.attempts, wordWithFinals],
     });
 
-    // Check win condition - compare normalized words directly
+    // Check win condition - direct comparison, NO reversal
+    // Normalize both to handle final/regular form differences
     if (normalizeWord(wordWithFinals) === normalizeWord(targetWord)) {
       updateWordleProgress({ solved: true });
       setMessage('מצוין! פיצחת את המילה! 🎉');
@@ -250,13 +260,14 @@ const WordlePage: React.FC = () => {
     }
   };
 
-  // Get display letter with final form for last position
+  // Get display letter with final form for the LAST filled position only (when row is full)
   const getDisplayLetter = (index: number): string => {
     const letter = currentAttempt[index];
     if (!letter) return '';
-    // Apply final form only to last position
+    
     const filledCount = currentAttempt.filter(l => l).length;
-    if (index === wordLength - 1 && filledCount === wordLength && FINAL_FORMS[letter]) {
+    // Only apply final form when row is completely full, and only to index 0 (last letter in RTL)
+    if (filledCount === wordLength && index === 0 && FINAL_FORMS[letter]) {
       return FINAL_FORMS[letter];
     }
     return letter;
