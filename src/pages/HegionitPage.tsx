@@ -315,7 +315,7 @@ const HegionitPage: React.FC = () => {
             onClick={() => navigateRiddle('prev')}
             className="p-3 rounded-full bg-card border border-border"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowRight className="w-6 h-6" />
           </button>
           
           {allSolved && (
@@ -332,7 +332,7 @@ const HegionitPage: React.FC = () => {
             onClick={() => navigateRiddle('next')}
             className="p-3 rounded-full bg-card border border-border"
           >
-            <ArrowRight className="w-6 h-6" />
+            <ArrowLeft className="w-6 h-6" />
           </button>
         </div>
       </div>
