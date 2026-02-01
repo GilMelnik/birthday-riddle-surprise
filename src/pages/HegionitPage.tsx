@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ArrowRight, ArrowLeft, ChevronRight, Lightbulb, Check, X } from 'lucide-react';
@@ -12,6 +12,29 @@ const HegionitPage: React.FC = () => {
   const currentRiddleIndex = progress.currentRiddle;
   const currentRiddle = riddles[currentRiddleIndex];
   
+  // Parse the answer - handle multi-word answers (spaces)
+  const answerWithoutSpaces = useMemo(() => 
+    currentRiddle.answer.replace(/ /g, ''), 
+    [currentRiddle.answer]
+  );
+  
+  // Split answer into words for rendering
+  const answerWords = useMemo(() => 
+    currentRiddle.answer.split(' '), 
+    [currentRiddle.answer]
+  );
+  
+  // Map from flat index to {wordIndex, charIndex}
+  const flatIndexToWordChar = useMemo(() => {
+    const map: { wordIndex: number; charIndex: number }[] = [];
+    answerWords.forEach((word, wordIndex) => {
+      for (let charIndex = 0; charIndex < word.length; charIndex++) {
+        map.push({ wordIndex, charIndex });
+      }
+    });
+    return map;
+  }, [answerWords]);
+  
   const [inputLetters, setInputLetters] = useState<string[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [tries, setTries] = useState(0);
@@ -19,16 +42,16 @@ const HegionitPage: React.FC = () => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    const answerLength = currentRiddle.answer.length;
+    const totalLength = answerWithoutSpaces.length;
     
     // If puzzle is already solved, restore the exact solved state
     if (progress.solved[currentRiddleIndex]) {
       const savedSolvedLetters = progress.solvedLetters?.[currentRiddleIndex];
-      if (savedSolvedLetters && savedSolvedLetters.length === answerLength) {
+      if (savedSolvedLetters && savedSolvedLetters.length === totalLength) {
         setInputLetters([...savedSolvedLetters]);
         // Lock ALL boxes for solved puzzles
         const allLocked = new Set<number>();
-        for (let i = 0; i < answerLength; i++) {
+        for (let i = 0; i < totalLength; i++) {
           allLocked.add(i);
         }
         setLockedIndices(allLocked);
@@ -38,7 +61,7 @@ const HegionitPage: React.FC = () => {
     }
     
     // Not solved - initialize empty with only hinted letters
-    const newLetters = Array(answerLength).fill('');
+    const newLetters = Array(totalLength).fill('');
     
     // Restore ONLY hinted indices - these are the boxes that should be locked and filled
     const savedLocked = progress.lockedIndices?.[currentRiddleIndex] || [];
@@ -46,8 +69,8 @@ const HegionitPage: React.FC = () => {
     
     // ONLY fill boxes that were explicitly revealed as hints
     savedLocked.forEach((i: number) => {
-      if (i >= 0 && i < answerLength) {
-        newLetters[i] = currentRiddle.answer[i];
+      if (i >= 0 && i < totalLength) {
+        newLetters[i] = answerWithoutSpaces[i];
         locked.add(i);
       }
     });
@@ -55,14 +78,14 @@ const HegionitPage: React.FC = () => {
     setInputLetters(newLetters);
     setLockedIndices(locked);
     setMessage(null);
-  }, [currentRiddleIndex, currentRiddle.answer.length, progress.solved, progress.solvedLetters, progress.lockedIndices]);
+  }, [currentRiddleIndex, answerWithoutSpaces, progress.solved, progress.solvedLetters, progress.lockedIndices]);
 
-  const handleLetterChange = (index: number, value: string) => {
+  const handleLetterChange = (flatIndex: number, value: string) => {
     if (progress.solved[currentRiddleIndex]) return;
-    if (lockedIndices.has(index)) return;
+    if (lockedIndices.has(flatIndex)) return;
     
     const newLetters = [...inputLetters];
-    newLetters[index] = value.slice(-1);
+    newLetters[flatIndex] = value.slice(-1);
     setInputLetters(newLetters);
     
     updateHegionitProgress({
@@ -72,8 +95,8 @@ const HegionitPage: React.FC = () => {
     });
 
     // Auto-focus next empty box (in visual RTL: move left means lower index)
-    if (value && index > 0) {
-      for (let nextIndex = index - 1; nextIndex >= 0; nextIndex--) {
+    if (value && flatIndex > 0) {
+      for (let nextIndex = flatIndex - 1; nextIndex >= 0; nextIndex--) {
         if (!lockedIndices.has(nextIndex) && !newLetters[nextIndex]) {
           inputRefs.current[nextIndex]?.focus();
           break;
@@ -82,16 +105,16 @@ const HegionitPage: React.FC = () => {
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (lockedIndices.has(index) && e.key !== 'Tab') {
+  const handleKeyDown = (flatIndex: number, e: React.KeyboardEvent) => {
+    if (lockedIndices.has(flatIndex) && e.key !== 'Tab') {
       e.preventDefault();
       return;
     }
     
     if (e.key === 'Backspace') {
-      if (!inputLetters[index] && index < inputLetters.length - 1) {
+      if (!inputLetters[flatIndex] && flatIndex < inputLetters.length - 1) {
         // Move to next box to the right (RTL) when backspacing on empty
-        for (let nextIndex = index + 1; nextIndex < inputLetters.length; nextIndex++) {
+        for (let nextIndex = flatIndex + 1; nextIndex < inputLetters.length; nextIndex++) {
           if (!lockedIndices.has(nextIndex)) {
             inputRefs.current[nextIndex]?.focus();
             break;
@@ -106,8 +129,8 @@ const HegionitPage: React.FC = () => {
     const typedWord = inputLetters.join('');
     setTries(prev => prev + 1);
     
-    // Direct comparison - no string reversal
-    if (typedWord === currentRiddle.answer) {
+    // Compare against answer WITHOUT spaces
+    if (typedWord === answerWithoutSpaces) {
       const newSolved = [...progress.solved];
       newSolved[currentRiddleIndex] = true;
       
@@ -152,6 +175,7 @@ const HegionitPage: React.FC = () => {
     }
 
     // Find FIRST empty position from RIGHT to LEFT (highest index first in RTL)
+    // ONLY look at truly empty boxes, preserve all user input
     let firstEmptyIndex = -1;
     for (let i = inputLetters.length - 1; i >= 0; i--) {
       if (!inputLetters[i] && !lockedIndices.has(i)) {
@@ -165,8 +189,10 @@ const HegionitPage: React.FC = () => {
       setTimeout(() => setMessage(null), 2000);
       return;
     }
+    
+    // ONLY modify the single hinted index - preserve all other letters
     const newLetters = [...inputLetters];
-    newLetters[firstEmptyIndex] = currentRiddle.answer[firstEmptyIndex];
+    newLetters[firstEmptyIndex] = answerWithoutSpaces[firstEmptyIndex];
     setInputLetters(newLetters);
     
     // Lock this position
@@ -201,6 +227,48 @@ const HegionitPage: React.FC = () => {
   };
 
   const allSolved = progress.solved.every(Boolean);
+
+  // Render letter boxes grouped by words
+  const renderLetterBoxes = () => {
+    let flatIndex = 0;
+    
+    return (
+      <div className="flex flex-col items-center gap-2 mb-4">
+        {answerWords.map((word, wordIndex) => (
+          <div key={wordIndex} className="flex justify-center gap-2 flex-row-reverse">
+            {word.split('').map((_, charIndex) => {
+              const currentFlatIndex = flatIndex;
+              flatIndex++;
+              const letter = inputLetters[currentFlatIndex] || '';
+              
+              return (
+                <input
+                  key={currentFlatIndex}
+                  ref={el => inputRefs.current[currentFlatIndex] = el}
+                  type="text"
+                  value={letter}
+                  onChange={(e) => handleLetterChange(currentFlatIndex, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(currentFlatIndex, e)}
+                  disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(currentFlatIndex)}
+                  className={`letter-box ${
+                    progress.solved[currentRiddleIndex]
+                      ? 'letter-box-correct'
+                      : lockedIndices.has(currentFlatIndex)
+                      ? 'letter-box-locked'
+                      : letter
+                      ? 'letter-box-filled'
+                      : 'letter-box-empty'
+                  }`}
+                  maxLength={1}
+                  dir="rtl"
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen romantic-gradient px-4 py-6">
@@ -249,31 +317,8 @@ const HegionitPage: React.FC = () => {
             {currentRiddle.riddle}
           </p>
 
-          {/* Letter boxes */}
-          <div className="flex justify-center gap-2 mb-4 flex-row-reverse">
-            {inputLetters.map((letter, i) => (
-              <input
-                key={i}
-                ref={el => inputRefs.current[i] = el}
-                type="text"
-                value={letter}
-                onChange={(e) => handleLetterChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(i)}
-                className={`letter-box ${
-                  progress.solved[currentRiddleIndex]
-                    ? 'letter-box-correct'
-                    : lockedIndices.has(i)
-                    ? 'letter-box-locked'
-                    : letter
-                    ? 'letter-box-filled'
-                    : 'letter-box-empty'
-                }`}
-                maxLength={1}
-                dir="rtl"
-              />
-            ))}
-          </div>
+          {/* Letter boxes - now supports multi-word */}
+          {renderLetterBoxes()}
 
           {/* Tries counter */}
           <div className="text-center text-sm text-muted-foreground mb-4">
