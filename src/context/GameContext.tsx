@@ -7,6 +7,7 @@ interface PuzzleProgress {
     hintsUsed: number[];
     answers: string[];
     lockedIndices: Record<number, number[]>;
+    solvedLetters: Record<number, string[]>; // Persisted letters for solved puzzles
   };
   wordle: {
     solved: boolean;
@@ -44,6 +45,7 @@ const initialProgress: PuzzleProgress = {
     hintsUsed: [0, 0, 0],
     answers: ['', '', ''],
     lockedIndices: {},
+    solvedLetters: {},
   },
   wordle: {
     solved: false,
