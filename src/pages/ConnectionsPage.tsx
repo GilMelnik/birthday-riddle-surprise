@@ -230,21 +230,6 @@ const ConnectionsPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Message */}
-        {message && (
-          <div
-            className={`text-center p-3 rounded-lg mb-4 ${
-              message.type === 'success'
-                ? 'bg-green-900/30 text-green-400'
-                : message.type === 'error'
-                ? 'bg-red-900/30 text-red-400'
-                : 'bg-secondary text-secondary-foreground'
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
-
         {/* Solved groups */}
         {solvedGroups.map(({ group, index, colorClass }) => (
           <div
@@ -307,6 +292,21 @@ const ConnectionsPage: React.FC = () => {
               <Lightbulb className="w-4 h-4 ml-2" />
               רמז ({2 - progress.hintsUsed} נותרו)
             </RomanticButton>
+          </div>
+        )}
+
+        {/* Message */}
+        {message && (
+          <div
+            className={`text-center p-3 rounded-lg mb-4 ${
+              message.type === 'success'
+                ? 'bg-green-900/30 text-green-400'
+                : message.type === 'error'
+                ? 'bg-red-900/30 text-red-400'
+                : 'bg-secondary text-secondary-foreground'
+            }`}
+          >
+            {message.text}
           </div>
         )}
 
