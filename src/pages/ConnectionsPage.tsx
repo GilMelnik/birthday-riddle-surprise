@@ -21,7 +21,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled;
 };
 
-// Distribute words so that no row has more than one word from the same group
+// Distribute words 
 const distributeWordsAcrossGrid = (words: string[], groups: Group[]): string[] => {
   // Create a map of word to group index
   const wordToGroup: Record<string, number> = {};
@@ -38,7 +38,7 @@ const distributeWordsAcrossGrid = (words: string[], groups: Group[]): string[] =
   const rows: string[][] = [[], [], [], []];
   const rowGroupCounts: Set<number>[] = [new Set(), new Set(), new Set(), new Set()];
   
-  // Try to place each word in a row that doesn't have a word from the same group
+  // Try to place each word in a row
   for (const word of shuffledWords) {
     const groupIndex = wordToGroup[word];
     let placed = false;
@@ -46,8 +46,8 @@ const distributeWordsAcrossGrid = (words: string[], groups: Group[]): string[] =
     // Try each row in random order
     const rowOrder = shuffleArray([0, 1, 2, 3]);
     for (const rowIndex of rowOrder) {
-      // Check if row has space and doesn't already have a word from this group
-      if (rows[rowIndex].length < 4 && !rowGroupCounts[rowIndex].has(groupIndex)) {
+      // Check if row has space
+      if (rows[rowIndex].length < 4) {
         rows[rowIndex].push(word);
         rowGroupCounts[rowIndex].add(groupIndex);
         placed = true;
