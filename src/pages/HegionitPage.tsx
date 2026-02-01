@@ -20,6 +20,24 @@ const HegionitPage: React.FC = () => {
 
   useEffect(() => {
     const answerLength = currentRiddle.answer.length;
+    
+    // If puzzle is already solved, restore the exact solved state
+    if (progress.solved[currentRiddleIndex]) {
+      const savedSolvedLetters = progress.solvedLetters?.[currentRiddleIndex];
+      if (savedSolvedLetters && savedSolvedLetters.length === answerLength) {
+        setInputLetters([...savedSolvedLetters]);
+        // Lock ALL boxes for solved puzzles
+        const allLocked = new Set<number>();
+        for (let i = 0; i < answerLength; i++) {
+          allLocked.add(i);
+        }
+        setLockedIndices(allLocked);
+        setMessage(null);
+        return;
+      }
+    }
+    
+    // Not solved - initialize empty with only hinted letters
     const newLetters = Array(answerLength).fill('');
     
     // Restore ONLY hinted indices - these are the boxes that should be locked and filled
@@ -34,13 +52,10 @@ const HegionitPage: React.FC = () => {
       }
     });
     
-    // Do NOT restore user-typed letters from savedAnswer - they should be empty on reload
-    // Only hinted letters persist
-    
     setInputLetters(newLetters);
     setLockedIndices(locked);
     setMessage(null);
-  }, [currentRiddleIndex, currentRiddle.answer.length]);
+  }, [currentRiddleIndex, currentRiddle.answer.length, progress.solved, progress.solvedLetters, progress.lockedIndices]);
 
   const handleLetterChange = (index: number, value: string) => {
     if (progress.solved[currentRiddleIndex]) return;
@@ -95,7 +110,15 @@ const HegionitPage: React.FC = () => {
     if (typedWord === currentRiddle.answer) {
       const newSolved = [...progress.solved];
       newSolved[currentRiddleIndex] = true;
-      updateHegionitProgress({ solved: newSolved });
+      
+      // Save the complete solved letters state
+      const newSolvedLetters: Record<number, string[]> = { ...(progress.solvedLetters || {}) };
+      newSolvedLetters[currentRiddleIndex] = [...inputLetters];
+      
+      updateHegionitProgress({ 
+        solved: newSolved,
+        solvedLetters: newSolvedLetters,
+      });
       setMessage({ type: 'success', text: 'מצוין! תשובה נכונה! 🎉' });
     } else {
       setMessage({ type: 'error', text: 'לא נכון, נסה שוב! 💪' });
