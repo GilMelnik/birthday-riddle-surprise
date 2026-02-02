@@ -18,8 +18,13 @@ const HegionitPage: React.FC = () => {
   const [lockedIndices, setLockedIndices] = useState<Set<number>>(new Set());
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Helper to get answer without spaces
+  const getAnswerWithoutSpaces = () => currentRiddle.answer.replace(/ /g, '');
+
   useEffect(() => {
-    const answerLength = currentRiddle.answer.length;
+    // Remove spaces from answer to get the actual input length
+    const answerWithoutSpaces = getAnswerWithoutSpaces();
+    const answerLength = answerWithoutSpaces.length;
     
     // If puzzle is already solved, restore the exact solved state
     if (progress.solved[currentRiddleIndex]) {
@@ -47,7 +52,7 @@ const HegionitPage: React.FC = () => {
     // ONLY fill boxes that were explicitly revealed as hints
     savedLocked.forEach((i: number) => {
       if (i >= 0 && i < answerLength) {
-        newLetters[i] = currentRiddle.answer[i];
+        newLetters[i] = answerWithoutSpaces[i];
         locked.add(i);
       }
     });
@@ -55,7 +60,7 @@ const HegionitPage: React.FC = () => {
     setInputLetters(newLetters);
     setLockedIndices(locked);
     setMessage(null);
-  }, [currentRiddleIndex, currentRiddle.answer.length, progress.solved, progress.solvedLetters, progress.lockedIndices]);
+  }, [currentRiddleIndex, currentRiddle.answer, progress.solved, progress.solvedLetters, progress.lockedIndices]);
 
   const handleLetterChange = (index: number, value: string) => {
     if (progress.solved[currentRiddleIndex]) return;
@@ -102,12 +107,13 @@ const HegionitPage: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    // Build the typed word in logical order (index 0 → last) - NO reversing
+    // Build the typed word without spaces
     const typedWord = inputLetters.join('');
+    const answerWithoutSpaces = getAnswerWithoutSpaces();
     setTries(prev => prev + 1);
     
-    // Direct comparison - no string reversal
-    if (typedWord === currentRiddle.answer) {
+    // Compare without spaces
+    if (typedWord === answerWithoutSpaces) {
       const newSolved = [...progress.solved];
       newSolved[currentRiddleIndex] = true;
       
@@ -151,6 +157,8 @@ const HegionitPage: React.FC = () => {
       return;
     }
 
+    const answerWithoutSpaces = getAnswerWithoutSpaces();
+
     // Find FIRST empty position from RIGHT to LEFT (highest index first in RTL)
     let firstEmptyIndex = -1;
     for (let i = inputLetters.length - 1; i >= 0; i--) {
@@ -166,7 +174,7 @@ const HegionitPage: React.FC = () => {
       return;
     }
     const newLetters = [...inputLetters];
-    newLetters[firstEmptyIndex] = currentRiddle.answer[firstEmptyIndex];
+    newLetters[firstEmptyIndex] = answerWithoutSpaces[firstEmptyIndex];
     setInputLetters(newLetters);
     
     // Lock this position
@@ -188,6 +196,26 @@ const HegionitPage: React.FC = () => {
         i === currentRiddleIndex ? newLetters.join('') : a
       ),
     });
+  };
+
+  // Helper to split answer into words and get word boundaries (without spaces in indices)
+  const getWordBoundaries = () => {
+    const words = currentRiddle.answer.split(' ');
+    // For RTL rendering, reverse the words array so first word appears on right
+    const rtlWords = [...words].reverse();
+    const boundaries: { word: string; startIndex: number; endIndex: number }[] = [];
+    let currentIndex = 0;
+    
+    rtlWords.forEach((word) => {
+      boundaries.push({
+        word,
+        startIndex: currentIndex,
+        endIndex: currentIndex + word.length - 1
+      });
+      currentIndex += word.length; // No +1 since we don't store spaces
+    });
+    
+    return boundaries;
   };
 
   const navigateRiddle = (direction: 'prev' | 'next') => {
@@ -249,30 +277,41 @@ const HegionitPage: React.FC = () => {
             {currentRiddle.riddle}
           </p>
 
-          {/* Letter boxes */}
-          <div className="flex justify-center gap-2 mb-4 flex-row-reverse">
-            {inputLetters.map((letter, i) => (
-              <input
-                key={i}
-                ref={el => inputRefs.current[i] = el}
-                type="text"
-                value={letter}
-                onChange={(e) => handleLetterChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(i)}
-                className={`letter-box ${
-                  progress.solved[currentRiddleIndex]
-                    ? 'letter-box-correct'
-                    : lockedIndices.has(i)
-                    ? 'letter-box-locked'
-                    : letter
-                    ? 'letter-box-filled'
-                    : 'letter-box-empty'
-                }`}
-                maxLength={1}
-                dir="rtl"
-              />
-            ))}
+          {/* Letter boxes - render line by line for multi-word answers */}
+          <div className="flex flex-col items-center gap-3 mb-4">
+            {(() => {
+              const wordBoundaries = getWordBoundaries();
+              return wordBoundaries.map((boundary, wordIndex) => (
+                <div key={wordIndex} className="flex justify-center gap-2 flex-row-reverse">
+                  {Array.from({ length: boundary.endIndex - boundary.startIndex + 1 }, (_, i) => {
+                    const letterIndex = boundary.startIndex + i;
+                    const letter = inputLetters[letterIndex] || '';
+                    return (
+                      <input
+                        key={letterIndex}
+                        ref={el => inputRefs.current[letterIndex] = el}
+                        type="text"
+                        value={letter}
+                        onChange={(e) => handleLetterChange(letterIndex, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(letterIndex, e)}
+                        disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(letterIndex)}
+                        className={`letter-box ${
+                          progress.solved[currentRiddleIndex]
+                            ? 'letter-box-correct'
+                            : lockedIndices.has(letterIndex)
+                            ? 'letter-box-locked'
+                            : letter
+                            ? 'letter-box-filled'
+                            : 'letter-box-empty'
+                        }`}
+                        maxLength={1}
+                        dir="rtl"
+                      />
+                    );
+                  })}
+                </div>
+              ));
+            })()}
           </div>
 
           {/* Tries counter */}
