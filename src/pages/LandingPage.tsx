@@ -9,13 +9,13 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen romantic-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
       <div className="z-10 text-center max-w-md mx-auto">
         <div className="mb-8">
-          <span className="text-6xl inline-block">💕</span>
+          <span className="text-6xl inline-block">🎉</span>
         </div>
         
         <h1 className="text-4xl sm:text-5xl font-serif font-bold text-foreground mb-6 leading-tight">
-          הפתעה מיוחדת
+          יותם היקר,
           <br />
-          <span className="text-gradient-purple">בשבילך</span>
+          <span className="text-gradient-purple">מזל טוב!</span>
         </h1>
         
         <p className="text-lg sm:text-xl text-muted-foreground mb-4 leading-relaxed">
@@ -25,7 +25,7 @@ const LandingPage: React.FC = () => {
         <p className="text-base sm:text-lg text-muted-foreground mb-8 leading-relaxed">
           הכנתי לך משהו מיוחד ליום ההולדת שלך.
           <br />
-          שלושה חידות מחכות לך...
+          שלוש חידות מחכות לך...
           <br />
           פתור אותן וגלה את ההפתעה! 🎁
         </p>
@@ -37,7 +37,7 @@ const LandingPage: React.FC = () => {
             onClick={() => setCurrentPage('hub')}
             className="w-full"
           >
-            התחל את ההרפתקה 💝
+            התחל את ההרפתקה 🌟
           </RomanticButton>
         </div>
         
