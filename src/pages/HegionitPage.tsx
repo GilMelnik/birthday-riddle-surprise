@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ArrowRight, ArrowLeft, ChevronRight, Lightbulb, Check, X } from 'lucide-react';
@@ -20,6 +20,71 @@ const HegionitPage: React.FC = () => {
 
   // Helper to get answer without spaces
   const getAnswerWithoutSpaces = () => currentRiddle.answer.replace(/ /g, '');
+
+  // --- Reading-order + Hebrew final-letter helpers ---
+  // Storage indices (0..N-1) correspond to the answer with spaces removed, in logical word order.
+  // Reading order for navigation/hints is: word1 letters right-to-left, then word2 letters right-to-left, etc.
+  const getLogicalWordSegments = () => {
+    const words = currentRiddle.answer.split(' ');
+    const segments: { word: string; startIndex: number; endIndex: number }[] = [];
+    let cursor = 0;
+    for (const word of words) {
+      const startIndex = cursor;
+      const endIndex = cursor + word.length - 1;
+      segments.push({ word, startIndex, endIndex });
+      cursor += word.length;
+    }
+    return segments;
+  };
+
+  const getReadingOrderIndices = () => {
+    const segments = getLogicalWordSegments();
+    const indices: number[] = [];
+    for (const seg of segments) {
+      for (let i = seg.endIndex; i >= seg.startIndex; i--) indices.push(i);
+    }
+    return indices;
+  };
+
+  const isEndOfWordIndex = (index: number) => {
+    const segments = getLogicalWordSegments();
+    // In the UI each word is rendered RTL. The *end* of the word visually is the leftmost box,
+    // which corresponds to the first character in the string => startIndex in our flat storage.
+    return segments.some(seg => seg.startIndex === index);
+  };
+
+  const FINAL_FORMS: Record<string, string> = { 'כ': 'ך', 'מ': 'ם', 'נ': 'ן', 'פ': 'ף', 'צ': 'ץ' };
+  const REGULAR_FORMS: Record<string, string> = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+
+  const normalizeHebrewFinalForm = (raw: string, index: number) => {
+    const ch = raw.trim().slice(-1);
+    if (!ch) return '';
+
+    const endOfWord = isEndOfWordIndex(index);
+
+    if (endOfWord) {
+      // End of word: force final form where applicable
+      if (FINAL_FORMS[ch]) return FINAL_FORMS[ch];
+      return ch;
+    }
+
+    // Not end of word: force regular form (if user typed the final)
+    if (REGULAR_FORMS[ch]) return REGULAR_FORMS[ch];
+    return ch;
+  };
+
+  const getPrevIndexInReadingOrder = (fromIndex: number) => {
+    const order = getReadingOrderIndices();
+    const pos = order.indexOf(fromIndex);
+    if (pos <= 0) return null;
+
+    for (let p = pos - 1; p >= 0; p--) {
+      const i = order[p];
+      if (!lockedIndices.has(i)) return i;
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     // Remove spaces from answer to get the actual input length
@@ -65,23 +130,31 @@ const HegionitPage: React.FC = () => {
   const handleLetterChange = (index: number, value: string) => {
     if (progress.solved[currentRiddleIndex]) return;
     if (lockedIndices.has(index)) return;
-    
+
+    const normalized = normalizeHebrewFinalForm(value, index);
+
     const newLetters = [...inputLetters];
-    newLetters[index] = value.slice(-1);
+    newLetters[index] = normalized;
     setInputLetters(newLetters);
-    
+
     updateHegionitProgress({
-      answers: progress.answers.map((a, i) => 
+      answers: progress.answers.map((a, i) =>
         i === currentRiddleIndex ? newLetters.join('') : a
       ),
     });
 
-    // Auto-focus next empty box (in visual RTL: move left means lower index)
-    if (value && index > 0) {
-      for (let nextIndex = index - 1; nextIndex >= 0; nextIndex--) {
-        if (!lockedIndices.has(nextIndex) && !newLetters[nextIndex]) {
-          inputRefs.current[nextIndex]?.focus();
-          break;
+    // Auto-focus next empty box in reading order (across lines/words)
+    if (normalized) {
+      // Prefer the next empty, non-locked box in reading order.
+      const order = getReadingOrderIndices();
+      const pos = order.indexOf(index);
+      if (pos !== -1) {
+        for (let p = pos + 1; p < order.length; p++) {
+          const nextIndex = order[p];
+          if (!lockedIndices.has(nextIndex) && !newLetters[nextIndex]) {
+            inputRefs.current[nextIndex]?.focus();
+            break;
+          }
         }
       }
     }
@@ -92,17 +165,33 @@ const HegionitPage: React.FC = () => {
       e.preventDefault();
       return;
     }
-    
+
     if (e.key === 'Backspace') {
-      if (!inputLetters[index] && index < inputLetters.length - 1) {
-        // Move to next box to the right (RTL) when backspacing on empty
-        for (let nextIndex = index + 1; nextIndex < inputLetters.length; nextIndex++) {
-          if (!lockedIndices.has(nextIndex)) {
-            inputRefs.current[nextIndex]?.focus();
-            break;
-          }
+      // Smooth backspace (treat all boxes like continuous text):
+      // If current is empty -> move to previous and delete it in the same action.
+      if (!inputLetters[index]) {
+        e.preventDefault();
+
+        const prevIndex = getPrevIndexInReadingOrder(index);
+        if (prevIndex === null) return;
+
+        const newLetters = [...inputLetters];
+        if (!lockedIndices.has(prevIndex)) {
+          newLetters[prevIndex] = '';
+          setInputLetters(newLetters);
+          updateHegionitProgress({
+            answers: progress.answers.map((a, i) =>
+              i === currentRiddleIndex ? newLetters.join('') : a
+            ),
+          });
         }
+
+        inputRefs.current[prevIndex]?.focus();
+        return;
       }
+
+      // If current is not empty, allow the normal delete behavior.
+      // (onChange will fire with '' and we handle it there)
     }
   };
 
@@ -149,7 +238,7 @@ const HegionitPage: React.FC = () => {
 
   const handleHint = () => {
     if (progress.solved[currentRiddleIndex]) return;
-    
+
     const currentHints = progress.hintsUsed[currentRiddleIndex] || 0;
     if (currentHints >= 2) {
       setMessage({ type: 'error', text: 'כבר השתמשת ב-2 רמזים לחידה זו!' });
@@ -159,40 +248,43 @@ const HegionitPage: React.FC = () => {
 
     const answerWithoutSpaces = getAnswerWithoutSpaces();
 
-    // Find FIRST empty position from RIGHT to LEFT (highest index first in RTL)
-    let firstEmptyIndex = -1;
-    for (let i = inputLetters.length - 1; i >= 0; i--) {
-      if (!inputLetters[i] && !lockedIndices.has(i)) {
-        firstEmptyIndex = i;
+    // Find FIRST empty position in reading order: word1 first, then word2... (each word RTL)
+    const order = getReadingOrderIndices();
+    let targetIndex = -1;
+    for (const i of order) {
+      if (!lockedIndices.has(i) && !inputLetters[i]) {
+        targetIndex = i;
         break;
       }
     }
 
-    if (firstEmptyIndex === -1) {
+    if (targetIndex === -1) {
       setMessage({ type: 'error', text: 'אין תיבות ריקות!' });
       setTimeout(() => setMessage(null), 2000);
       return;
     }
+
+    // Add the hinted letter only (don’t modify other user-entered letters)
     const newLetters = [...inputLetters];
-    newLetters[firstEmptyIndex] = answerWithoutSpaces[firstEmptyIndex];
+    newLetters[targetIndex] = normalizeHebrewFinalForm(answerWithoutSpaces[targetIndex] ?? '', targetIndex);
     setInputLetters(newLetters);
-    
+
     // Lock this position
     const newLocked = new Set(lockedIndices);
-    newLocked.add(firstEmptyIndex);
+    newLocked.add(targetIndex);
     setLockedIndices(newLocked);
 
     const newHintsUsed = [...progress.hintsUsed];
     newHintsUsed[currentRiddleIndex] = currentHints + 1;
-    
+
     // Save locked indices to progress
     const newLockedIndicesRecord: Record<number, number[]> = { ...(progress.lockedIndices || {}) };
     newLockedIndicesRecord[currentRiddleIndex] = Array.from(newLocked);
-    
+
     updateHegionitProgress({
       hintsUsed: newHintsUsed,
       lockedIndices: newLockedIndicesRecord,
-      answers: progress.answers.map((a, i) => 
+      answers: progress.answers.map((a, i) =>
         i === currentRiddleIndex ? newLetters.join('') : a
       ),
     });
@@ -205,7 +297,7 @@ const HegionitPage: React.FC = () => {
     const rtlWords = [...words].reverse();
     const boundaries: { word: string; startIndex: number; endIndex: number }[] = [];
     let currentIndex = 0;
-    
+
     rtlWords.forEach((word) => {
       boundaries.push({
         word,
@@ -214,7 +306,7 @@ const HegionitPage: React.FC = () => {
       });
       currentIndex += word.length; // No +1 since we don't store spaces
     });
-    
+
     return boundaries;
   };
 
@@ -289,7 +381,9 @@ const HegionitPage: React.FC = () => {
                     return (
                       <input
                         key={letterIndex}
-                        ref={el => inputRefs.current[letterIndex] = el}
+                        ref={(el) => {
+                          inputRefs.current[letterIndex] = el;
+                        }}
                         type="text"
                         value={letter}
                         onChange={(e) => handleLetterChange(letterIndex, e.target.value)}
