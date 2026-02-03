@@ -97,23 +97,17 @@
 
 @layer components {
   .romantic-gradient {
-    background-color: hsl(var(--background));
+    background-color: hsl(220 30% 6%);
   }
 
-  .dog-pattern-bg {
-    position: relative;
-  }
-
-  .dog-pattern-bg::before {
-    content: '';
+  .dog-pattern-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     opacity: 0.08;
     pointer-events: none;
     z-index: 0;
+    background-size: 150px;
+    background-repeat: repeat;
   }
 
   .gold-shimmer {
@@ -122,34 +116,6 @@
 
   .puzzle-box {
     @apply bg-card border-2 border-border rounded-xl shadow-lg p-4;
-  }
-
-  .dog-decoration {
-    position: absolute;
-    pointer-events: none;
-    opacity: 0.9;
-    z-index: 0;
-  }
-
-  .dog-decoration-bottom-left {
-    bottom: 2rem;
-    left: 1rem;
-    width: 120px;
-    height: 120px;
-  }
-
-  .dog-decoration-bottom-right {
-    bottom: 2rem;
-    right: 1rem;
-    width: 120px;
-    height: 120px;
-  }
-
-  .dog-decoration-top-right {
-    top: 5rem;
-    right: 1rem;
-    width: 100px;
-    height: 100px;
   }
 
   .letter-box {

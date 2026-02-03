@@ -3,8 +3,7 @@ import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ArrowRight, ArrowLeft, ChevronRight, Lightbulb, Check, X } from 'lucide-react';
 import puzzleData from '@/data/puzzles.json';
-import dogHusky from '@/assets/dog-husky.png';
-import dogPattern from '@/assets/dog-pattern.png';
+import patternHusky from '@/assets/pattern-husky.png';
 
 const HegionitPage: React.FC = () => {
   const { state, setCurrentPage, updateHegionitProgress } = useGame();
@@ -355,15 +354,10 @@ const HegionitPage: React.FC = () => {
   const allSolved = progress.solved.every(Boolean);
 
   return (
-    <div 
-      className="min-h-screen romantic-gradient px-4 py-6 relative overflow-hidden"
-      style={{ backgroundImage: `url(${dogPattern})`, backgroundSize: '200px', backgroundRepeat: 'repeat' }}
-    >
-      <div className="absolute inset-0 bg-background/92 pointer-events-none" />
-      <img 
-        src={dogHusky} 
-        alt="" 
-        className="dog-decoration dog-decoration-top-right"
+    <div className="min-h-screen romantic-gradient px-4 py-6 relative overflow-hidden">
+      <div 
+        className="dog-pattern-overlay"
+        style={{ backgroundImage: `url(${patternHusky})` }}
       />
       <div className="max-w-md mx-auto relative z-10">
         {/* Header */}
