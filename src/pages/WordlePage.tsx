@@ -3,6 +3,8 @@ import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ChevronRight, Delete, CornerDownLeft } from 'lucide-react';
 import puzzleData from '@/data/puzzles.json';
+import dogBeagle from '@/assets/dog-beagle.png';
+import dogPattern from '@/assets/dog-pattern.png';
 
 type LetterStatus = 'default' | 'correct' | 'wrong-place' | 'wrong';
 
@@ -274,8 +276,17 @@ const WordlePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen romantic-gradient px-4 py-6 flex flex-col">
-      <div className="max-w-md mx-auto flex-1 flex flex-col">
+    <div 
+      className="min-h-screen romantic-gradient px-4 py-6 flex flex-col relative overflow-hidden"
+      style={{ backgroundImage: `url(${dogPattern})`, backgroundSize: '200px', backgroundRepeat: 'repeat' }}
+    >
+      <div className="absolute inset-0 bg-background/92 pointer-events-none" />
+      <img 
+        src={dogBeagle} 
+        alt="" 
+        className="dog-decoration dog-decoration-top-right"
+      />
+      <div className="max-w-md mx-auto flex-1 flex flex-col relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
