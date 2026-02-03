@@ -13,8 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import dogGoldenRetriever from '@/assets/dog-golden-retriever.png';
-import dogPattern from '@/assets/dog-pattern.png';
+import patternGoldenRetriever from '@/assets/pattern-golden-retriever.png';
 
 interface PuzzleCardProps {
   title: string;
@@ -78,15 +77,10 @@ const HubPage: React.FC = () => {
   const completedCount = puzzles.filter(p => getPuzzleStatus(p.id) === 'solved').length;
 
   return (
-    <div 
-      className="min-h-screen romantic-gradient px-4 py-8 relative overflow-hidden"
-      style={{ backgroundImage: `url(${dogPattern})`, backgroundSize: '200px', backgroundRepeat: 'repeat' }}
-    >
-      <div className="absolute inset-0 bg-background/92 pointer-events-none" />
-      <img 
-        src={dogGoldenRetriever} 
-        alt="" 
-        className="dog-decoration dog-decoration-bottom-right"
+    <div className="min-h-screen romantic-gradient px-4 py-8 relative overflow-hidden">
+      <div 
+        className="dog-pattern-overlay"
+        style={{ backgroundImage: `url(${patternGoldenRetriever})` }}
       />
       <div className="max-w-md mx-auto relative z-10">
         <div className="text-center mb-8">
