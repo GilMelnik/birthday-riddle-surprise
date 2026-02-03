@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface PuzzleProgress {
   hegionit: {
@@ -106,13 +106,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
   };
 
   const updateHegionitProgress = (updates: Partial<PuzzleProgress['hegionit']>) => {
-    setState(prev => ({
-      ...prev,
-      progress: {
-        ...prev.progress,
-        hegionit: { ...prev.progress.hegionit, ...updates },
-      },
-    }));
+    setState(prev => {
+      const prevHegionit = prev.progress.hegionit;
+
+      return {
+        ...prev,
+        progress: {
+          ...prev.progress,
+          hegionit: {
+            ...prevHegionit,
+            ...updates,
+            lockedIndices: updates.lockedIndices
+              ? { ...prevHegionit.lockedIndices, ...updates.lockedIndices }
+              : prevHegionit.lockedIndices,
+            solvedLetters: updates.solvedLetters
+              ? { ...prevHegionit.solvedLetters, ...updates.solvedLetters }
+              : prevHegionit.solvedLetters,
+          },
+        },
+      };
+    });
   };
 
   const updateWordleProgress = (updates: Partial<PuzzleProgress['wordle']>) => {
