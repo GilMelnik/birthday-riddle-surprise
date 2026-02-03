@@ -2,6 +2,8 @@ import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import puzzleData from '@/data/puzzles.json';
+import dogCorgi from '@/assets/dog-corgi.png';
+import dogPattern from '@/assets/dog-pattern.png';
 
 const FinalPage: React.FC = () => {
   const { setCurrentPage } = useGame();
@@ -9,7 +11,22 @@ const FinalPage: React.FC = () => {
   const wishes = puzzleData.finalWishes;
 
   return (
-    <div className="min-h-screen romantic-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
+    <div 
+      className="min-h-screen romantic-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden"
+      style={{ backgroundImage: `url(${dogPattern})`, backgroundSize: '200px', backgroundRepeat: 'repeat' }}
+    >
+      <div className="absolute inset-0 bg-background/92 pointer-events-none" />
+      <img 
+        src={dogCorgi} 
+        alt="" 
+        className="dog-decoration dog-decoration-bottom-left"
+      />
+      <img 
+        src={dogCorgi} 
+        alt="" 
+        className="dog-decoration dog-decoration-bottom-right"
+        style={{ transform: 'scaleX(-1)' }}
+      />
       <div className="z-10 text-center max-w-md mx-auto">
         <div className="mb-8">
           <span className="text-7xl inline-block">🎂</span>
