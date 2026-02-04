@@ -97,17 +97,7 @@
 
 @layer components {
   .romantic-gradient {
-    background-color: hsl(220 30% 6%);
-  }
-
-  .dog-pattern-overlay {
-    position: absolute;
-    inset: 0;
-    opacity: 0.08;
-    pointer-events: none;
-    z-index: 0;
-    background-size: 150px;
-    background-repeat: repeat;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--charcoal)) 50%, hsl(var(--deep-purple) / 0.3) 100%);
   }
 
   .gold-shimmer {

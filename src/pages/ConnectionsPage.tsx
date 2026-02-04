@@ -3,7 +3,6 @@ import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ChevronRight, Lightbulb } from 'lucide-react';
 import puzzleData from '@/data/puzzles.json';
-import patternBorderCollie from '@/assets/pattern-border-collie.png';
 
 interface Group {
   words: string[];
@@ -197,12 +196,8 @@ const ConnectionsPage: React.FC = () => {
   const remainingAttempts = maxAttempts - attempts;
 
   return (
-    <div className="min-h-screen romantic-gradient px-4 py-6 relative overflow-hidden">
-      <div 
-        className="dog-pattern-overlay"
-        style={{ backgroundImage: `url(${patternBorderCollie})` }}
-      />
-      <div className="max-w-md mx-auto relative z-10">
+    <div className="min-h-screen romantic-gradient px-4 py-6">
+      <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button

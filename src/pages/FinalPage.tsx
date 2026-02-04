@@ -2,7 +2,6 @@ import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import puzzleData from '@/data/puzzles.json';
-import patternCorgi from '@/assets/pattern-corgi.png';
 
 const FinalPage: React.FC = () => {
   const { setCurrentPage } = useGame();
@@ -11,10 +10,6 @@ const FinalPage: React.FC = () => {
 
   return (
     <div className="min-h-screen romantic-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
-      <div 
-        className="dog-pattern-overlay"
-        style={{ backgroundImage: `url(${patternCorgi})` }}
-      />
       <div className="z-10 text-center max-w-md mx-auto">
         <div className="mb-8">
           <span className="text-7xl inline-block">🎂</span>
