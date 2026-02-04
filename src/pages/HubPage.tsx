@@ -78,12 +78,22 @@ const HubPage: React.FC = () => {
   return (
     <div className="min-h-screen romantic-gradient px-4 py-8 relative">
       <div className="max-w-md mx-auto">
+        <div className="mb-6 flex justify-start">
+          <RomanticButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentPage('landing')}
+          >
+            חזרה לדף הבית
+          </RomanticButton>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
             מרכז החידות 🎂
           </h1>
           <p className="text-muted-foreground">
-            פתור את כל החידות לגלות את ההפתעה
+            פתור את כל החידות כדי לגלות את ההפתעה
           </p>
           
           <div className="mt-4 flex justify-center gap-2">
