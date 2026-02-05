@@ -19,15 +19,15 @@ const LandingPage: React.FC = () => {
         </h1>
         
         <p className="text-lg sm:text-xl text-muted-foreground mb-4 leading-relaxed">
-          אהוב שלי היקר,
+          אהובי המקסים,
         </p>
         
         <p className="text-base sm:text-lg text-muted-foreground mb-8 leading-relaxed">
-          הכנתי לך משהו מיוחד ליום ההולדת שלך.
+          הנה כמה חידות קטנות להנאתך.
           <br />
-          שלוש חידות מחכות לך...
+          בסופן מחכה לך הפתעה.
           <br />
-          פתור אותן וגלה את ההפתעה! 🎁
+          בהצלחה!
         </p>
         
         <div className="space-y-4">
