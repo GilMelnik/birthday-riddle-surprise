@@ -484,36 +484,38 @@ const HegionitPage: React.FC = () => {
                 const wordLength = boundary.endIndex - boundary.startIndex + 1;
 
                 return (
-                  <div key={wordIndex} className="flex flex-nowrap justify-center gap-2 max-w-full">
-                    {Array.from({ length: wordLength }, (_, i) => {
-                      const letterIndex = boundary.endIndex - i;
-                      const letter = inputLetters[letterIndex] || '';
-                      return (
-                        <input
-                          key={letterIndex}
-                          ref={(el) => {
-                            inputRefs.current[letterIndex] = el;
-                          }}
-                          type="text"
-                          value={letter}
-                          onChange={(e) => handleLetterChange(letterIndex, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(letterIndex, e)}
-                          disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(letterIndex)}
-                          className={`letter-box ${
-                            progress.solved[currentRiddleIndex]
-                              ? 'letter-box-correct'
-                              : lockedIndices.has(letterIndex)
-                              ? 'letter-box-locked'
-                              : letter
-                              ? 'letter-box-filled'
-                              : 'letter-box-empty'
-                          }`}
-                          style={uniformStyle}
-                          maxLength={1}
-                          dir="rtl"
-                        />
-                      );
-                    })}
+                  <div key={wordIndex} className="w-full flex" dir="rtl">
+                    <div className="flex flex-nowrap justify-start gap-2 max-w-full">
+                      {Array.from({ length: wordLength }, (_, i) => {
+                        const letterIndex = boundary.endIndex - i;
+                        const letter = inputLetters[letterIndex] || '';
+                        return (
+                          <input
+                            key={letterIndex}
+                            ref={(el) => {
+                              inputRefs.current[letterIndex] = el;
+                            }}
+                            type="text"
+                            value={letter}
+                            onChange={(e) => handleLetterChange(letterIndex, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(letterIndex, e)}
+                            disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(letterIndex)}
+                            className={`letter-box ${
+                              progress.solved[currentRiddleIndex]
+                                ? 'letter-box-correct'
+                                : lockedIndices.has(letterIndex)
+                                ? 'letter-box-locked'
+                                : letter
+                                ? 'letter-box-filled'
+                                : 'letter-box-empty'
+                            }`}
+                            style={uniformStyle}
+                            maxLength={1}
+                            dir="rtl"
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               });
