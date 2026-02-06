@@ -114,7 +114,11 @@
     /* Responsive sizing so long answers don't overflow the card on small screens.
        This is tuned to allow whole-word rows to fit without wrapping. */
     --heg-box: clamp(1.75rem, 7.5vw, 3.5rem);
-    @apply flex items-center justify-center font-bold rounded-lg border-2;
+    /* Make radius proportional to box size, so small boxes don't become circles */
+    --heg-radius: clamp(0px, calc(var(--heg-box) * 0.18), 0.5rem);
+
+    @apply flex items-center justify-center font-bold border-2;
+    border-radius: var(--heg-radius);
     width: var(--heg-box);
     height: var(--heg-box);
     font-size: clamp(1rem, 4.5vw, 1.75rem);

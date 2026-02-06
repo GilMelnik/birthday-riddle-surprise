@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ChevronRight, Delete, CornerDownLeft } from 'lucide-react';
@@ -38,16 +38,175 @@ const HEBREW_KEYBOARD = [
 const WordlePage: React.FC = () => {
   const { state, setCurrentPage, updateWordleProgress } = useGame();
   const { wordle: progress } = state.progress;
-  
+
   const targetWord = puzzleData.wordle[0].word;
   const wordLength = 5;
   const maxAttempts = 6;
 
   const [attempts, setAttempts] = useState<LetterState[][]>([]);
   const [currentAttempt, setCurrentAttempt] = useState<string[]>(Array(wordLength).fill(''));
-  const [cursorPosition, setCursorPosition] = useState(wordLength - 1); // Start at rightmost
   const [keyboardStatus, setKeyboardStatus] = useState<Record<string, LetterStatus>>({});
   const [message, setMessage] = useState<string | null>(null);
+
+  // --- Responsive sizing: keep the grid + keyboard within the screen ---
+  const [containerWidthPx, setContainerWidthPx] = useState<number>(0);
+  const [containerHeightPx, setContainerHeightPx] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const el = containerRef.current;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setContainerWidthPx(rect.width);
+      setContainerHeightPx(rect.height);
+    };
+
+    update();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
+    }
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const getScaleForViewportHeight = () => {
+    // We estimate required height and downscale if it doesn't fit.
+    // This keeps everything visible without vertical scrolling.
+    const h = containerHeightPx || (typeof window !== 'undefined' ? window.innerHeight : 700);
+
+    // Conservative fixed heights for header+message areas.
+    const headerAndChromePx = 160;
+
+    // Baseline sizes (roughly Tailwind defaults used here)
+    const gridRows = maxAttempts;
+    const gridGapY = 8; // space-y-2
+
+    const keyboardRowGapsY = 8; // space-y-2
+
+    const boxPx = 56;
+    const keyH = 48; // h-12
+
+    const gridHeight = gridRows * boxPx + Math.max(0, gridRows - 1) * gridGapY;
+    const keyboardHeight = 3 * keyH + 2 * keyboardRowGapsY;
+
+    // Add a bit for the bottom CTA (solved state) and breathing room.
+    const baselineTotal = headerAndChromePx + gridHeight + keyboardHeight + 32;
+
+    // Scale down only if needed.
+    return clampNumber(h / baselineTotal, 0.68, 1);
+  };
+
+  const getScaledGapClass = () => {
+    const s = getScaleForViewportHeight();
+    return s < 0.82 ? 'gap-1' : 'gap-2';
+  };
+
+  const getScaledGridGapYClass = () => {
+    const s = getScaleForViewportHeight();
+    return s < 0.82 ? 'space-y-1.5' : 'space-y-2';
+  };
+
+  const getWordleBoxPx = () => {
+    const scale = getScaleForViewportHeight();
+
+    // Use a smaller gap on very small screens.
+    const gapPx = scale < 0.82 ? 4 : 8;
+
+    const maxBoxPx = Math.floor(56 * scale);
+    const minBoxPx = 14;
+
+    const safetyPx = 2;
+    const availablePx = Math.max(0, (containerWidthPx || 0) - safetyPx);
+    const gapsPx = Math.max(0, wordLength - 1) * gapPx;
+
+    const rawPx = (availablePx - gapsPx) / wordLength;
+    return clampNumber(Math.floor(rawPx), minBoxPx, maxBoxPx);
+  };
+
+  const getWordleLetterBoxStyle = (): React.CSSProperties => {
+    const scale = getScaleForViewportHeight();
+    const boxPx = getWordleBoxPx();
+    const fontPx = clampNumber(Math.round(boxPx * 0.55), 10, 26);
+
+    // Keep square look (avoid circles) even when small.
+    const radiusPx = clampNumber(Math.round(boxPx * 0.16), 4, Math.max(6, Math.round(12 * scale)));
+
+    return {
+      width: `${boxPx}px`,
+      height: `${boxPx}px`,
+      fontSize: `${fontPx}px`,
+      borderRadius: `${radiusPx}px`,
+    };
+  };
+
+  const getKeyboardLayoutRowLengths = () => {
+    // Row 1 includes letters plus backspace
+    const row1 = HEBREW_KEYBOARD[0].length + 1;
+    const row2 = HEBREW_KEYBOARD[1].length;
+    const row3 = HEBREW_KEYBOARD[2].length + 1; // includes enter
+    return { row1, row2, row3, max: Math.max(row1, row2, row3) };
+  };
+
+  const getKeyboardGapPx = () => {
+    const scale = getScaleForViewportHeight();
+    // Tailwind gap-1 ~ 4px; shrink slightly on tiny screens.
+    return scale < 0.78 ? 2 : 4;
+  };
+
+  const getKeyboardKeyMinWidthPx = () => {
+    // The .keyboard-key class sets min-w-[2.5rem] (40px). On very small screens
+    // that can overflow horizontally for 10 keys; we override via inline minWidth.
+    const { max } = getKeyboardLayoutRowLengths();
+    const gapPx = getKeyboardGapPx();
+
+    const containerPx = containerWidthPx || 0;
+    const safetyPx = 2;
+    const availablePx = Math.max(0, containerPx - safetyPx);
+    const gapsPx = Math.max(0, max - 1) * gapPx;
+
+    const raw = (availablePx - gapsPx) / Math.max(1, max);
+
+    // Keep usable tap target but allow shrinking further if required.
+    return clampNumber(Math.floor(raw), 22, 48);
+  };
+
+  const getKeyboardKeyStyle = (): React.CSSProperties => {
+    const scale = getScaleForViewportHeight();
+
+    const heightPx = clampNumber(Math.round(48 * scale), 30, 48);
+    const fontPx = clampNumber(Math.round(18 * scale), 11, 18);
+    const radiusPx = clampNumber(Math.round(12 * scale), 6, 12);
+
+    return {
+      height: `${heightPx}px`,
+      minWidth: `${getKeyboardKeyMinWidthPx()}px`,
+      fontSize: `${fontPx}px`,
+      borderRadius: `${radiusPx}px`,
+      lineHeight: 1,
+      paddingLeft: scale < 0.78 ? '0.35rem' : undefined,
+      paddingRight: scale < 0.78 ? '0.35rem' : undefined,
+    };
+  };
+
+  const getKeyboardIconStyle = (): React.CSSProperties => {
+    const scale = getScaleForViewportHeight();
+    const size = clampNumber(Math.round(20 * scale), 14, 20);
+    return { width: `${size}px`, height: `${size}px` };
+  };
+
+  const getKeyboardRowClassName = () => {
+    // Use inline gap style for more granular control than Tailwind classes.
+    return "flex justify-center flex-row-reverse";
+  };
 
   // Normalize word for comparison (convert final forms to regular)
   const normalizeWord = (word: string): string => {
@@ -143,7 +302,7 @@ const WordlePage: React.FC = () => {
 
   const handleKeyPress = useCallback((letter: string) => {
     if (progress.solved || attempts.length >= maxAttempts) return;
-    
+
     // Find rightmost empty cell
     let insertPos = -1;
     for (let i = wordLength - 1; i >= 0; i--) {
@@ -152,12 +311,11 @@ const WordlePage: React.FC = () => {
         break;
       }
     }
-    
+
     if (insertPos !== -1) {
       const newAttempt = [...currentAttempt];
       newAttempt[insertPos] = letter;
       setCurrentAttempt(newAttempt);
-      setCursorPosition(insertPos - 1);
     }
   }, [currentAttempt, wordLength, progress.solved, attempts.length]);
 
@@ -170,12 +328,11 @@ const WordlePage: React.FC = () => {
         break;
       }
     }
-    
+
     if (removePos !== -1) {
       const newAttempt = [...currentAttempt];
       newAttempt[removePos] = '';
       setCurrentAttempt(newAttempt);
-      setCursorPosition(removePos);
     }
   }, [currentAttempt, wordLength]);
 
@@ -218,7 +375,6 @@ const WordlePage: React.FC = () => {
     }
 
     setCurrentAttempt(Array(wordLength).fill(''));
-    setCursorPosition(wordLength - 1);
   }, [currentAttempt, wordLength, attempts, keyboardStatus, progress.attempts]);
 
   // Keyboard event listener
@@ -275,7 +431,10 @@ const WordlePage: React.FC = () => {
 
   return (
     <div className="min-h-screen romantic-gradient px-4 py-6 flex flex-col">
-      <div className="max-w-md mx-auto flex-1 flex flex-col">
+      <div
+        ref={containerRef}
+        className="w-full mx-auto max-w-[min(28rem,100vw-2rem)] flex-1 flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
@@ -298,113 +457,124 @@ const WordlePage: React.FC = () => {
           </div>
         )}
 
-        {/* Game grid */}
-        <div className="flex-1 flex flex-col justify-center mb-4">
-          <div className="space-y-2">
-            {Array.from({ length: maxAttempts }).map((_, rowIndex) => {
-              const isCurrentRow = rowIndex === attempts.length;
-              const attempt = attempts[rowIndex];
-              
-              return (
-                <div
-                  key={rowIndex}
-                  className="flex justify-center gap-2 flex-row-reverse"
-                >
-                  {Array.from({ length: wordLength }).map((_, colIndex) => {
-                    let letter = '';
-                    let boxClass = 'letter-box-empty';
-                    
-                    if (attempt) {
-                      letter = attempt[colIndex]?.letter || '';
-                      boxClass = getBoxClass(attempt[colIndex]?.status || 'default');
-                    } else if (isCurrentRow) {
-                      letter = getDisplayLetter(colIndex);
-                      boxClass = letter ? 'letter-box-filled' : 'letter-box-empty';
-                    }
-                    
-                    return (
-                      <div
-                        key={colIndex}
-                        className={`letter-box ${boxClass}`}
-                      >
-                        {letter}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+        {/* Grid + Keyboard (keep together) */}
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Game grid */}
+          <div className="mb-3">
+            <div className={getScaledGridGapYClass()}>
+              {Array.from({ length: maxAttempts }).map((_, rowIndex) => {
+                const isCurrentRow = rowIndex === attempts.length;
+                const attempt = attempts[rowIndex];
+                const boxStyle = getWordleLetterBoxStyle();
+                const rowGapClass = getScaledGapClass();
+
+                return (
+                  <div
+                    key={rowIndex}
+                    className={`flex justify-center ${rowGapClass} flex-row-reverse`}
+                  >
+                    {Array.from({ length: wordLength }).map((_, colIndex) => {
+                      let letter = '';
+                      let boxClass = 'letter-box-empty';
+
+                      if (attempt) {
+                        letter = attempt[colIndex]?.letter || '';
+                        boxClass = getBoxClass(attempt[colIndex]?.status || 'default');
+                      } else if (isCurrentRow) {
+                        letter = getDisplayLetter(colIndex);
+                        boxClass = letter ? 'letter-box-filled' : 'letter-box-empty';
+                      }
+
+                      return (
+                        <div
+                          key={colIndex}
+                          className={`letter-box ${boxClass}`}
+                          style={boxStyle}
+                        >
+                          {letter}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Keyboard */}
+          {!progress.solved && attempts.length < maxAttempts && (
+            <div className="space-y-2 pb-4">
+              {/* Row 1: letters + backspace */}
+              <div className={getKeyboardRowClassName()} style={{ gap: `${getKeyboardGapPx()}px` }}>
+                {HEBREW_KEYBOARD[0].map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => handleKeyPress(letter)}
+                    className={`keyboard-key ${getKeyClass(letter)}`}
+                    style={getKeyboardKeyStyle()}
+                  >
+                    {letter}
+                  </button>
+                ))}
+                <button
+                  onClick={handleBackspace}
+                  className="keyboard-key keyboard-key-default"
+                  style={getKeyboardKeyStyle()}
+                >
+                  <Delete style={getKeyboardIconStyle()} />
+                </button>
+              </div>
+
+              {/* Row 2: letters only */}
+              <div className={getKeyboardRowClassName()} style={{ gap: `${getKeyboardGapPx()}px` }}>
+                {HEBREW_KEYBOARD[1].map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => handleKeyPress(letter)}
+                    className={`keyboard-key ${getKeyClass(letter)}`}
+                    style={getKeyboardKeyStyle()}
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+
+              {/* Row 3: letters + enter */}
+              <div className={getKeyboardRowClassName()} style={{ gap: `${getKeyboardGapPx()}px` }}>
+                {HEBREW_KEYBOARD[2].map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => handleKeyPress(letter)}
+                    className={`keyboard-key ${getKeyClass(letter)}`}
+                    style={getKeyboardKeyStyle()}
+                  >
+                    {letter}
+                  </button>
+                ))}
+                <button
+                  onClick={handleSubmit}
+                  className="keyboard-key keyboard-key-default"
+                  style={getKeyboardKeyStyle()}
+                >
+                  <CornerDownLeft style={getKeyboardIconStyle()} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {progress.solved && (
+            <div className="pb-4">
+              <RomanticButton
+                variant="gold"
+                size="default"
+                className="w-full"
+                onClick={() => setCurrentPage('hub')}
+              >
+                הושלם! חזרה למרכז 🎉
+              </RomanticButton>
+            </div>
+          )}
         </div>
-
-        {/* Keyboard */}
-        {!progress.solved && attempts.length < maxAttempts && (
-          <div className="space-y-2 pb-4">
-            {/* Row 1: letters + backspace */}
-            <div className="flex justify-center gap-1 flex-row-reverse">
-              {HEBREW_KEYBOARD[0].map((letter) => (
-                <button
-                  key={letter}
-                  onClick={() => handleKeyPress(letter)}
-                  className={`keyboard-key ${getKeyClass(letter)}`}
-                >
-                  {letter}
-                </button>
-              ))}
-              <button
-                onClick={handleBackspace}
-                className="keyboard-key keyboard-key-default px-3"
-              >
-                <Delete className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {/* Row 2: letters only */}
-            <div className="flex justify-center gap-1 flex-row-reverse">
-              {HEBREW_KEYBOARD[1].map((letter) => (
-                <button
-                  key={letter}
-                  onClick={() => handleKeyPress(letter)}
-                  className={`keyboard-key ${getKeyClass(letter)}`}
-                >
-                  {letter}
-                </button>
-              ))}
-            </div>
-            
-            {/* Row 3: letters + enter */}
-            <div className="flex justify-center gap-1 flex-row-reverse">
-              {HEBREW_KEYBOARD[2].map((letter) => (
-                <button
-                  key={letter}
-                  onClick={() => handleKeyPress(letter)}
-                  className={`keyboard-key ${getKeyClass(letter)}`}
-                >
-                  {letter}
-                </button>
-              ))}
-              <button
-                onClick={handleSubmit}
-                className="keyboard-key keyboard-key-default px-3"
-              >
-                <CornerDownLeft className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {progress.solved && (
-          <div className="pb-4">
-            <RomanticButton
-              variant="gold"
-              size="default"
-              className="w-full"
-              onClick={() => setCurrentPage('hub')}
-            >
-              הושלם! חזרה למרכז 🎉
-            </RomanticButton>
-          </div>
-        )}
       </div>
     </div>
   );
