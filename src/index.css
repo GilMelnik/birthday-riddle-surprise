@@ -106,10 +106,21 @@
 
   .puzzle-box {
     @apply bg-card border-2 border-border rounded-xl shadow-lg p-4;
+    /* Make sure content (focus rings, last row) never gets clipped */
+    overflow: visible;
   }
 
   .letter-box {
-    @apply w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-2xl font-bold rounded-lg border-2;
+    /* Responsive sizing so long answers don't overflow the card on small screens.
+       This is tuned to allow whole-word rows to fit without wrapping. */
+    --heg-box: clamp(1.75rem, 7.5vw, 3.5rem);
+    @apply flex items-center justify-center font-bold rounded-lg border-2;
+    width: var(--heg-box);
+    height: var(--heg-box);
+    font-size: clamp(1rem, 4.5vw, 1.75rem);
+    line-height: 1;
+    padding: 0;
+    box-sizing: border-box;
   }
 
   .letter-box-empty {

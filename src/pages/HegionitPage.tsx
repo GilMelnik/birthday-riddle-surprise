@@ -352,9 +352,84 @@ const HegionitPage: React.FC = () => {
 
   const allSolved = progress.solved.every(Boolean);
 
+  // --- Responsive sizing: prefer widening the puzzle container, then shrink all boxes uniformly ---
+  const [containerWidthPx, setContainerWidthPx] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const el = containerRef.current;
+
+    const update = () => {
+      // Prefer the actual rendered width (works for regular web view + responsive).
+      setContainerWidthPx(el.getBoundingClientRect().width);
+    };
+
+    update();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
+    }
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const getWordLengths = () => currentRiddle.answer.split(' ').map(w => w.length).filter(n => n > 0);
+
+  const getMaxWordLength = () => {
+    const lengths = getWordLengths();
+    return lengths.length ? Math.max(...lengths) : 0;
+  };
+
+  const getAvailableRowWidthPx = () => {
+    // puzzle-box has p-4 (16px each side) => 32px total.
+    // Keep a tiny safety margin to avoid rounding overflow.
+    const cardHorizontalPaddingPx = 32;
+    const safetyPx = 2;
+
+    // containerWidthPx is the width of the centered wrapper.
+    const base = containerWidthPx || 0;
+    return Math.max(0, base - cardHorizontalPaddingPx - safetyPx);
+  };
+
+  const getUniformBoxPxForPuzzle = () => {
+    // Prefer not shrinking boxes unless required.
+    const maxBoxPx = 56;
+    const minBoxPx = 18;
+
+    const maxWordLen = getMaxWordLength();
+    if (!maxWordLen) return maxBoxPx;
+
+    const gapPx = 8; // gap-2
+    const availablePx = getAvailableRowWidthPx();
+    const gapsPx = Math.max(0, maxWordLen - 1) * gapPx;
+
+    const rawPx = (availablePx - gapsPx) / maxWordLen;
+
+    return clampNumber(Math.floor(rawPx), minBoxPx, maxBoxPx);
+  };
+
+  const getUniformLetterBoxStyle = (): React.CSSProperties => {
+    const boxPx = getUniformBoxPxForPuzzle();
+    const fontPx = clampNumber(Math.round(boxPx * 0.55), 11, 28);
+
+    return {
+      width: `${boxPx}px`,
+      height: `${boxPx}px`,
+      fontSize: `${fontPx}px`,
+    };
+  };
+
   return (
     <div className="min-h-screen romantic-gradient px-4 py-6">
-      <div className="max-w-md mx-auto">
+      {/* Grow the puzzle container to (almost) the full screen width before shrinking boxes */}
+      <div ref={containerRef} className="w-full mx-auto max-w-[min(48rem,100vw-2rem)]">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
@@ -403,41 +478,47 @@ const HegionitPage: React.FC = () => {
           <div className="flex flex-col items-center gap-3 mb-4">
             {(() => {
               const wordBoundaries = getWordBoundaries();
-              return wordBoundaries.map((boundary, wordIndex) => (
-                <div key={wordIndex} className="flex justify-center gap-2">
-                  {Array.from({ length: boundary.endIndex - boundary.startIndex + 1 }, (_, i) => {
-                    // Render RTL visually by iterating storage indices from end -> start.
-                    const letterIndex = boundary.endIndex - i;
-                     const letter = inputLetters[letterIndex] || '';
-                     return (
-                       <input
-                         key={letterIndex}
-                         ref={(el) => {
-                           inputRefs.current[letterIndex] = el;
-                         }}
-                         type="text"
-                         value={letter}
-                         onChange={(e) => handleLetterChange(letterIndex, e.target.value)}
-                         onKeyDown={(e) => handleKeyDown(letterIndex, e)}
-                         disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(letterIndex)}
-                         className={`letter-box ${
-                           progress.solved[currentRiddleIndex]
-                             ? 'letter-box-correct'
-                             : lockedIndices.has(letterIndex)
-                             ? 'letter-box-locked'
-                             : letter
-                             ? 'letter-box-filled'
-                             : 'letter-box-empty'
-                         }`}
-                         maxLength={1}
-                         dir="rtl"
-                       />
-                     );
-                   })}
-                 </div>
-               ));
-             })()}
-           </div>
+              const uniformStyle = getUniformLetterBoxStyle();
+
+              return wordBoundaries.map((boundary, wordIndex) => {
+                const wordLength = boundary.endIndex - boundary.startIndex + 1;
+
+                return (
+                  <div key={wordIndex} className="flex flex-nowrap justify-center gap-2 max-w-full">
+                    {Array.from({ length: wordLength }, (_, i) => {
+                      const letterIndex = boundary.endIndex - i;
+                      const letter = inputLetters[letterIndex] || '';
+                      return (
+                        <input
+                          key={letterIndex}
+                          ref={(el) => {
+                            inputRefs.current[letterIndex] = el;
+                          }}
+                          type="text"
+                          value={letter}
+                          onChange={(e) => handleLetterChange(letterIndex, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(letterIndex, e)}
+                          disabled={progress.solved[currentRiddleIndex] || lockedIndices.has(letterIndex)}
+                          className={`letter-box ${
+                            progress.solved[currentRiddleIndex]
+                              ? 'letter-box-correct'
+                              : lockedIndices.has(letterIndex)
+                              ? 'letter-box-locked'
+                              : letter
+                              ? 'letter-box-filled'
+                              : 'letter-box-empty'
+                          }`}
+                          style={uniformStyle}
+                          maxLength={1}
+                          dir="rtl"
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              });
+            })()}
+          </div>
 
           {/* Tries counter */}
           <div className="text-center text-sm text-muted-foreground mb-4">
