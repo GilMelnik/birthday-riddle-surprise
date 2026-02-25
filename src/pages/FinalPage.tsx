@@ -33,9 +33,9 @@ const FinalPage: React.FC = () => {
           <div className="flex justify-center gap-4 text-4xl">
             <span>💕</span>
             <span>🎁</span>
+            <span>🥳</span>
             <span>🎈</span>
-            <span>🌹</span>
-            <span>💝</span>
+            <span>🐶</span>
           </div>
           
           <RomanticButton
