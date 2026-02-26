@@ -11,6 +11,7 @@ interface PuzzleProgress {
   };
   wordle: {
     solved: boolean;
+    failed: boolean;
     attempts: string[];
     currentAttempt: string;
   };
@@ -52,6 +53,7 @@ const initialProgress: PuzzleProgress = {
   },
   wordle: {
     solved: false,
+    failed: false,
     attempts: [],
     currentAttempt: '',
   },
@@ -88,6 +90,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
             ...parsed,
             progress: {
               ...parsed.progress,
+              wordle: {
+                ...initialProgress.wordle,
+                ...parsed.progress?.wordle,
+              },
               connections: {
                 ...initialProgress.connections,
                 ...parsed.progress?.connections,

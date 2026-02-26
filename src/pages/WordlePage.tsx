@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
-import { ChevronRight, Delete, CornerDownLeft } from 'lucide-react';
+import { ChevronRight, Delete, CornerDownLeft, RotateCcw } from 'lucide-react';
 import puzzleData from '@/data/puzzles.json';
 
 type LetterStatus = 'default' | 'correct' | 'wrong-place' | 'wrong';
@@ -301,7 +301,7 @@ const WordlePage: React.FC = () => {
   };
 
   const handleKeyPress = useCallback((letter: string) => {
-    if (progress.solved || attempts.length >= maxAttempts) return;
+    if (progress.solved || progress.failed || attempts.length >= maxAttempts) return;
 
     // Find rightmost empty cell
     let insertPos = -1;
@@ -317,9 +317,11 @@ const WordlePage: React.FC = () => {
       newAttempt[insertPos] = letter;
       setCurrentAttempt(newAttempt);
     }
-  }, [currentAttempt, wordLength, progress.solved, attempts.length]);
+  }, [currentAttempt, wordLength, progress.solved, progress.failed, attempts.length]);
 
   const handleBackspace = useCallback(() => {
+    if (progress.solved || progress.failed) return;
+
     // Find leftmost filled cell (most recently entered in RTL)
     let removePos = -1;
     for (let i = 0; i < wordLength; i++) {
@@ -334,9 +336,25 @@ const WordlePage: React.FC = () => {
       newAttempt[removePos] = '';
       setCurrentAttempt(newAttempt);
     }
-  }, [currentAttempt, wordLength]);
+  }, [currentAttempt, wordLength, progress.solved, progress.failed]);
+
+  const restartWordle = useCallback(() => {
+    setAttempts([]);
+    setCurrentAttempt(Array(wordLength).fill(''));
+    setKeyboardStatus({});
+    setMessage(null);
+
+    updateWordleProgress({
+      solved: false,
+      failed: false,
+      attempts: [],
+      currentAttempt: '',
+    });
+  }, [updateWordleProgress, wordLength]);
 
   const handleSubmit = useCallback(() => {
+    if (progress.solved || progress.failed) return;
+
     const filledCount = currentAttempt.filter(l => l).length;
     if (filledCount !== wordLength) {
       setMessage('הכנס מילה בת ' + wordLength + ' אותיות');
@@ -368,20 +386,21 @@ const WordlePage: React.FC = () => {
     // Check win condition - direct comparison, NO reversal
     // Normalize both to handle final/regular form differences
     if (normalizeWord(wordWithFinals) === normalizeWord(targetWord)) {
-      updateWordleProgress({ solved: true });
+      updateWordleProgress({ solved: true, failed: false });
       setMessage('מצוין! פיצחת את המילה! 🎉');
     } else if (newAttempts.length >= maxAttempts) {
-      setMessage(`המילה הייתה: ${targetWord}`);
+      updateWordleProgress({ failed: true });
+      setMessage('לא הצלחת הפעם. רוצה לנסות שוב?');
     }
 
     setCurrentAttempt(Array(wordLength).fill(''));
-  }, [currentAttempt, wordLength, attempts, keyboardStatus, progress.attempts]);
+  }, [currentAttempt, wordLength, attempts, keyboardStatus, progress.attempts, progress.solved, progress.failed]);
 
   // Keyboard event listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (progress.solved) return;
-      
+      if (progress.solved || progress.failed) return;
+
       if (e.key === 'Enter') {
         handleSubmit();
       } else if (e.key === 'Backspace') {
@@ -395,7 +414,7 @@ const WordlePage: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, handleBackspace, handleKeyPress, progress.solved]);
+  }, [handleSubmit, handleBackspace, handleKeyPress, progress.solved, progress.failed]);
 
   const getBoxClass = (status: LetterStatus) => {
     switch (status) {
@@ -480,7 +499,7 @@ const WordlePage: React.FC = () => {
                       if (attempt) {
                         letter = attempt[colIndex]?.letter || '';
                         boxClass = getBoxClass(attempt[colIndex]?.status || 'default');
-                      } else if (isCurrentRow) {
+                      } else if (isCurrentRow && !progress.failed && !progress.solved) {
                         letter = getDisplayLetter(colIndex);
                         boxClass = letter ? 'letter-box-filled' : 'letter-box-empty';
                       }
@@ -502,7 +521,7 @@ const WordlePage: React.FC = () => {
           </div>
 
           {/* Keyboard */}
-          {!progress.solved && attempts.length < maxAttempts && (
+          {!progress.solved && !progress.failed && attempts.length < maxAttempts && (
             <div className="space-y-2 pb-4">
               {/* Row 1: letters + backspace */}
               <div className={getKeyboardRowClassName()} style={{ gap: `${getKeyboardGapPx()}px` }}>
@@ -559,6 +578,22 @@ const WordlePage: React.FC = () => {
                   <CornerDownLeft style={getKeyboardIconStyle()} />
                 </button>
               </div>
+            </div>
+          )}
+
+          {progress.failed && !progress.solved && (
+            <div className="pb-4">
+              <RomanticButton
+                variant="gold"
+                size="default"
+                className="w-full"
+                onClick={restartWordle}
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  <RotateCcw className="w-4 h-4" />
+                  נסה שוב (איפוס וורדל)
+                </span>
+              </RomanticButton>
             </div>
           )}
 
