@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ChevronRight, Lightbulb } from 'lucide-react';
@@ -71,7 +71,7 @@ const distributeWordsAcrossGrid = (words: string[], groups: Group[]): string[] =
   return rows.map(row => shuffleArray(row)).flat();
 };
 
-const ConnectionsPage: React.FC = () => {
+const ConnectionsPage = () => {
   const { state, setCurrentPage, updateConnectionsProgress } = useGame();
   const { connections: progress } = state.progress;
   
@@ -140,6 +140,8 @@ const ConnectionsPage: React.FC = () => {
       updateConnectionsProgress({
         solvedGroups: newSolvedGroups,
         solved: newSolvedGroups.length === groups.length,
+        lastHintWords: [],
+        lastHintAttempts: -1,
       });
       
       setMessage({ text: `נכון! ${groups[matchingGroupIndex].connection}`, type: 'success' });
@@ -171,6 +173,23 @@ const ConnectionsPage: React.FC = () => {
   };
 
   const handleHint = () => {
+    const storedHintWords = Array.isArray(progress.lastHintWords) ? progress.lastHintWords : [];
+
+    const isStoredHintStillValid = () => {
+      if (storedHintWords.length === 0) return false;
+      for (const word of storedHintWords) {
+        if (!availableWords.includes(word)) return false;
+      }
+      return true;
+    };
+
+    if (isStoredHintStillValid()) {
+      setSelectedWords(storedHintWords);
+      setMessage({ text: 'הנה רמז - שתי מילים מאותה קבוצה!', type: 'info' });
+      setTimeout(() => setMessage(null), 2000);
+      return;
+    }
+
     if (progress.hintsUsed >= 2) {
       setMessage({ text: 'כבר השתמשת ב-2 רמזים!', type: 'error' });
       setTimeout(() => setMessage(null), 1500);
@@ -183,12 +202,17 @@ const ConnectionsPage: React.FC = () => {
 
     const group = groups[unsolvedGroupIndex];
     const availableFromGroup = group.words.filter(w => availableWords.includes(w));
-    
+    if (availableFromGroup.length === 0) return;
+
     // Highlight 2 words from this group
     const hintWords = availableFromGroup.slice(0, 2);
     setSelectedWords(hintWords);
     
-    updateConnectionsProgress({ hintsUsed: progress.hintsUsed + 1 });
+    updateConnectionsProgress({
+      hintsUsed: progress.hintsUsed + 1,
+      lastHintWords: hintWords,
+      lastHintAttempts: attempts,
+    });
     setMessage({ text: 'הנה רמז - שתי מילים מאותה קבוצה!', type: 'info' });
     setTimeout(() => setMessage(null), 2000);
   };

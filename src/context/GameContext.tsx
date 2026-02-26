@@ -19,6 +19,8 @@ interface PuzzleProgress {
     solvedGroups: number[];
     attempts: number;
     hintsUsed: number;
+    lastHintWords: string[];
+    lastHintAttempts: number;
   };
 }
 
@@ -57,6 +59,8 @@ const initialProgress: PuzzleProgress = {
     solvedGroups: [],
     attempts: 0,
     hintsUsed: 0,
+    lastHintWords: [],
+    lastHintAttempts: -1,
   },
 };
 
