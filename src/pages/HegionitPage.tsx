@@ -14,7 +14,6 @@ const HegionitPage: React.FC = () => {
   
   const [inputLetters, setInputLetters] = useState<string[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [tries, setTries] = useState(0);
   const [lockedIndices, setLockedIndices] = useState<Set<number>>(new Set());
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const didInitForRiddle = useRef<number | null>(null);
@@ -229,8 +228,11 @@ const HegionitPage: React.FC = () => {
     // Build the typed word without spaces
     const typedWord = inputLetters.join('');
     const answerWithoutSpaces = getAnswerWithoutSpaces();
-    setTries(prev => prev + 1);
-    
+
+    const newTries = [...progress.tries];
+    newTries[currentRiddleIndex] = (newTries[currentRiddleIndex] || 0) + 1;
+    updateHegionitProgress({ tries: newTries });
+
     // Compare without spaces
     if (typedWord === answerWithoutSpaces) {
       const newSolved = [...progress.solved];
@@ -524,7 +526,7 @@ const HegionitPage: React.FC = () => {
 
           {/* Tries counter */}
           <div className="text-center text-sm text-muted-foreground mb-4">
-            ניסיונות: {tries} | רמזים: {progress.hintsUsed[currentRiddleIndex] || 0}/2
+            ניסיונות: {progress.tries[currentRiddleIndex] || 0} | רמזים: {progress.hintsUsed[currentRiddleIndex] || 0}/2
           </div>
 
           {/* Message */}

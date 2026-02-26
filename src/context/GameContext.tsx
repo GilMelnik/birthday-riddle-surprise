@@ -6,6 +6,7 @@ interface PuzzleProgress {
     solved: boolean[];
     hintsUsed: number[];
     answers: string[];
+    tries: number[];
     lockedIndices: Record<number, number[]>;
     solvedLetters: Record<number, string[]>; // Persisted letters for solved puzzles
   };
@@ -50,6 +51,7 @@ const initialProgress: PuzzleProgress = {
     solved: [false, false, false],
     hintsUsed: [0, 0, 0],
     answers: ['', '', ''],
+    tries: [0, 0, 0],
     lockedIndices: {},
     solvedLetters: {},
   },
@@ -93,6 +95,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
             ...parsed,
             progress: {
               ...parsed.progress,
+              hegionit: {
+                ...initialProgress.hegionit,
+                ...parsed.progress?.hegionit,
+              },
               wordle: {
                 ...initialProgress.wordle,
                 ...parsed.progress?.wordle,
