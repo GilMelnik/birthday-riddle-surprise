@@ -3,6 +3,7 @@ import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
 import { ChevronRight, Lightbulb } from 'lucide-react';
 import puzzleData from '@/data/puzzles.json';
+import { createSelectionKey } from '@/lib/connections';
 
 interface Group {
   words: string[];
@@ -121,6 +122,17 @@ const ConnectionsPage = () => {
       return;
     }
 
+    // Check if 3 out of 4 are correct (for any unsolved group)
+    const almostCorrect = groups.some((group, groupIndex) => {
+      if (progress.solvedGroups.includes(groupIndex)) return false;
+      const matchCount = selectedWords.filter(w => group.words.includes(w)).length;
+      return matchCount === 3;
+    });
+
+    const selectionKey = createSelectionKey(selectedWords);
+    const triedSelections = Array.isArray(progress.triedSelections) ? progress.triedSelections : [];
+    const alreadyTried = triedSelections.includes(selectionKey);
+
     // Check if this matches any group
     const matchingGroupIndex = groups.findIndex(group => {
       const groupSet = new Set(group.words);
@@ -132,44 +144,52 @@ const ConnectionsPage = () => {
       const newSolvedGroups = [...progress.solvedGroups, matchingGroupIndex];
       const colorClass = GROUP_COLORS[solvedGroups.length % GROUP_COLORS.length];
       const newSolvedDisplay = [...solvedGroups, { group: groups[matchingGroupIndex], index: matchingGroupIndex, colorClass }];
-      
+
       setSolvedGroups(newSolvedDisplay);
       setAvailableWords(availableWords.filter(w => !selectedWords.includes(w)));
       setSelectedWords([]);
-      
+
+      const nextTriedSelections = alreadyTried ? triedSelections : [...triedSelections, selectionKey];
+
       updateConnectionsProgress({
         solvedGroups: newSolvedGroups,
         solved: newSolvedGroups.length === groups.length,
+        triedSelections: nextTriedSelections,
         lastHintWords: [],
         lastHintAttempts: -1,
       });
-      
+
       setMessage({ text: `נכון! ${groups[matchingGroupIndex].connection}`, type: 'success' });
       setTimeout(() => setMessage(null), 2500);
-    } else {
-      // Check if 3 out of 4 are correct
-      let almostCorrect = false;
-      groups.forEach(group => {
-        if (progress.solvedGroups.includes(groups.indexOf(group))) return;
-        const matchCount = selectedWords.filter(w => group.words.includes(w)).length;
-        if (matchCount === 3) {
-          almostCorrect = true;
-        }
-      });
+      return;
+    }
 
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      updateConnectionsProgress({ attempts: newAttempts });
-
+    if (alreadyTried) {
+      // Don't count this attempt again, but do keep the '3 out of 4' feedback
       if (almostCorrect) {
-        setMessage({ text: 'כמעט! שלושה מתוך ארבעה נכונים', type: 'info' });
+        setMessage({ text: 'כמעט! שלושה מתוך ארבעה נכונים (כבר ניסית את זה)', type: 'info' });
       } else {
-        setMessage({ text: 'לא נכון, נסה שוב!', type: 'error' });
+        setMessage({ text: 'כבר ניסית את 4 המילים האלה', type: 'info' });
       }
       setTimeout(() => setMessage(null), 2000);
-      // DO NOT clear selection on wrong answer - user must manually change
-      // setSelectedWords([]);
+      return;
     }
+
+    // New (unique) wrong attempt: count it once
+    const newAttempts = attempts + 1;
+    const nextTriedSelections = [...triedSelections, selectionKey];
+
+    setAttempts(newAttempts);
+    updateConnectionsProgress({ attempts: newAttempts, triedSelections: nextTriedSelections });
+
+    if (almostCorrect) {
+      setMessage({ text: 'כמעט! שלושה מתוך ארבעה נכונים', type: 'info' });
+    } else {
+      setMessage({ text: 'לא נכון, נסה שוב!', type: 'error' });
+    }
+    setTimeout(() => setMessage(null), 2000);
+    // DO NOT clear selection on wrong answer - user must manually change
+    // setSelectedWords([]);
   };
 
   const handleHint = () => {

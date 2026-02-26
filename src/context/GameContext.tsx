@@ -21,6 +21,7 @@ interface PuzzleProgress {
     hintsUsed: number;
     lastHintWords: string[];
     lastHintAttempts: number;
+    triedSelections: string[];
   };
 }
 
@@ -61,6 +62,7 @@ const initialProgress: PuzzleProgress = {
     hintsUsed: 0,
     lastHintWords: [],
     lastHintAttempts: -1,
+    triedSelections: [],
   },
 };
 
@@ -80,7 +82,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved) as GameState;
+
+          return {
+            ...parsed,
+            progress: {
+              ...parsed.progress,
+              connections: {
+                ...initialProgress.connections,
+                ...parsed.progress?.connections,
+                triedSelections: Array.isArray(parsed.progress?.connections?.triedSelections)
+                  ? parsed.progress.connections.triedSelections
+                  : [],
+              },
+            },
+          };
         } catch {
           return initialState;
         }
