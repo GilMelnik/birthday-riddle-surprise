@@ -93,6 +93,16 @@ const HegionitPage: React.FC = () => {
     return null;
   };
 
+  const getCorrectIndices = (letters: string[], answerWithoutSpaces: string) => {
+    const matches: number[] = [];
+    for (let i = 0; i < letters.length && i < answerWithoutSpaces.length; i++) {
+      if (letters[i] && letters[i] === answerWithoutSpaces[i]) {
+        matches.push(i);
+      }
+    }
+    return matches;
+  };
+
   useEffect(() => {
     // Remove spaces from answer to get the actual input length
     const answerWithoutSpaces = getAnswerWithoutSpaces();
@@ -248,6 +258,31 @@ const HegionitPage: React.FC = () => {
       });
       setMessage({ type: 'success', text: 'מצוין! תשובה נכונה! 🎉' });
     } else {
+      const correctIndices = getCorrectIndices(inputLetters, answerWithoutSpaces);
+
+      if (correctIndices.length) {
+        const newLocked = new Set(lockedIndices);
+        const newLetters = [...inputLetters];
+
+        correctIndices.forEach((i) => {
+          newLocked.add(i);
+          newLetters[i] = normalizeHebrewFinalForm(answerWithoutSpaces[i] ?? '', i);
+        });
+
+        setInputLetters(newLetters);
+        setLockedIndices(newLocked);
+
+        const newLockedIndicesRecord: Record<number, number[]> = { ...(progress.lockedIndices || {}) };
+        newLockedIndicesRecord[currentRiddleIndex] = Array.from(newLocked);
+
+        updateHegionitProgress({
+          lockedIndices: newLockedIndicesRecord,
+          answers: progress.answers.map((a, i) =>
+            i === currentRiddleIndex ? encodeAnswer(newLetters) : a
+          ),
+        });
+      }
+
       setMessage({ type: 'error', text: 'לא נכון, נסה שוב! 💪' });
       setTimeout(() => setMessage(null), 2000);
     }
