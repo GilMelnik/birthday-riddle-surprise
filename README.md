@@ -1,26 +1,46 @@
-# Welcome to your Lovable project
+# Welcome to the project
 
-## Project info
+## Project overview
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+This is a small web app built to deliver a birthday-themed riddle experience. 
+It guides the player through a hub of mini-games (like Connections, Wordle and Hegionit puzzles), then culminates in a final reveal. 
+The tone is playful and celebratory, with visual flair like confetti and floating hearts.
 
-## How can I edit this code?
+## What you can do in the app
 
-There are several ways of editing your application.
+- Start at the landing page and follow the navigation to the puzzle hub.
+- Solve word and grouping riddles to unlock progress.
+- Enjoy lightweight animations and celebratory visuals as you complete tasks.
+- Reach the final page for the birthday surprise.
 
-**Use Lovable**
+## Riddles and puzzle flow
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+The puzzles live in `src/data/puzzles.json` and are wired into the pages under `src/pages/`. Each page reads the appropriate puzzle data and renders the interaction for that game. The current flow is:
 
-Changes made via Lovable will be committed automatically to this repo.
+- Landing page: introduction and entry point.
+- Hub page: choose between available riddle experiences.
+- Hegionit puzzle: a cryptic crosswords riddle.
+- Wordle puzzle: a word guessing game with hints.
+- Connections puzzle: group related items into sets.
+- Final page: the celebration screen once the riddles are completed.
 
-**Use your preferred IDE**
+## Project structure
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```
+public/                 # Static assets
+src/
+  components/           # Reusable UI components and effects
+  context/              # Shared state for game flow
+  data/                 # Puzzle data (riddles)
+  hooks/                # Custom React hooks
+  lib/                  # Utilities and helper logic
+  pages/                # Page-level views
+  test/                 # Unit and integration tests
+  App.tsx               # App shell and routing
+  main.tsx              # Application entry point
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## How to run locally
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
@@ -36,19 +56,15 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## How to deploy to GitHub Pages
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+# Step 1: Build the project.
+npm run build
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Step 2: Deploy to GitHub Pages.
+npm run deploy
+```
 
 ## What technologies are used for this project?
 
@@ -59,15 +75,3 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
