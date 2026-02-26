@@ -591,7 +591,7 @@ const WordlePage: React.FC = () => {
               >
                 <span className="inline-flex items-center justify-center gap-2">
                   <RotateCcw className="w-4 h-4" />
-                  נסה שוב (איפוס וורדל)
+                  נסה שוב (איפוס 5 אותיות)
                 </span>
               </RomanticButton>
             </div>

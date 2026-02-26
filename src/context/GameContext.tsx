@@ -17,6 +17,7 @@ interface PuzzleProgress {
   };
   connections: {
     solved: boolean;
+    failed: boolean;
     solvedGroups: number[];
     attempts: number;
     hintsUsed: number;
@@ -38,6 +39,7 @@ interface GameContextType {
   updateHegionitProgress: (updates: Partial<PuzzleProgress['hegionit']>) => void;
   updateWordleProgress: (updates: Partial<PuzzleProgress['wordle']>) => void;
   updateConnectionsProgress: (updates: Partial<PuzzleProgress['connections']>) => void;
+  resetConnectionsProgress: () => void;
   resetProgress: () => void;
   getPuzzleStatus: (puzzle: 'hegionit' | 'wordle' | 'connections') => 'locked' | 'in-progress' | 'solved';
 }
@@ -59,6 +61,7 @@ const initialProgress: PuzzleProgress = {
   },
   connections: {
     solved: false,
+    failed: false,
     solvedGroups: [],
     attempts: 0,
     hintsUsed: 0,
@@ -174,6 +177,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const resetConnectionsProgress = () => {
+    setState(prev => ({
+      ...prev,
+      progress: {
+        ...prev.progress,
+        connections: { ...initialProgress.connections },
+      },
+    }));
+  };
+
   const resetProgress = () => {
     setState({ ...initialState, currentPage: 'hub' });
   };
@@ -205,6 +218,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         updateHegionitProgress,
         updateWordleProgress,
         updateConnectionsProgress,
+        resetConnectionsProgress,
         resetProgress,
         getPuzzleStatus,
       }}

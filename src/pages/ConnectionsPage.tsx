@@ -73,22 +73,22 @@ const distributeWordsAcrossGrid = (words: string[], groups: Group[]): string[] =
 };
 
 const ConnectionsPage = () => {
-  const { state, setCurrentPage, updateConnectionsProgress } = useGame();
+  const { state, setCurrentPage, updateConnectionsProgress, resetConnectionsProgress } = useGame();
   const { connections: progress } = state.progress;
-  
+
   const { words: allWords, groups } = puzzleData.connections as { words: string[]; groups: Group[] };
-  
+
   // Shuffle words on initial load, distributing groups across rows
   const shuffledWords = useMemo(() => {
     return distributeWordsAcrossGrid(allWords, groups);
   }, []);
-  
+
   const [availableWords, setAvailableWords] = useState<string[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const [solvedGroups, setSolvedGroups] = useState<{ group: Group; index: number; colorClass: string }[]>([]);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [attempts, setAttempts] = useState(progress.attempts);
-  const maxAttempts = 4;
+  const maxAttempts = 6;
 
   useEffect(() => {
     // Restore solved groups with colors
@@ -98,16 +98,20 @@ const ConnectionsPage = () => {
       colorClass: GROUP_COLORS[i % GROUP_COLORS.length],
     }));
     setSolvedGroups(restored);
-    
+
     // Set available words (excluding solved), maintaining shuffled order
     const solvedWords = new Set(progress.solvedGroups.flatMap(i => groups[i].words));
     setAvailableWords(shuffledWords.filter(w => !solvedWords.has(w)));
     setAttempts(progress.attempts);
-  }, [shuffledWords]);
+
+    if (progress.failed) {
+      setSelectedWords([]);
+    }
+  }, [shuffledWords, progress.failed]);
 
   const handleWordClick = (word: string) => {
-    if (progress.solved) return;
-    
+    if (progress.solved || progress.failed) return;
+
     if (selectedWords.includes(word)) {
       setSelectedWords(selectedWords.filter(w => w !== word));
     } else if (selectedWords.length < 4) {
@@ -116,6 +120,8 @@ const ConnectionsPage = () => {
   };
 
   const handleSubmit = () => {
+    if (progress.solved || progress.failed) return;
+
     if (selectedWords.length !== 4) {
       setMessage({ text: 'בחר 4 מילים', type: 'info' });
       setTimeout(() => setMessage(null), 1500);
@@ -154,6 +160,7 @@ const ConnectionsPage = () => {
       updateConnectionsProgress({
         solvedGroups: newSolvedGroups,
         solved: newSolvedGroups.length === groups.length,
+        failed: false,
         triedSelections: nextTriedSelections,
         lastHintWords: [],
         lastHintAttempts: -1,
@@ -179,8 +186,21 @@ const ConnectionsPage = () => {
     const newAttempts = attempts + 1;
     const nextTriedSelections = [...triedSelections, selectionKey];
 
+    const isNowFailed = newAttempts >= maxAttempts;
+
     setAttempts(newAttempts);
-    updateConnectionsProgress({ attempts: newAttempts, triedSelections: nextTriedSelections });
+    updateConnectionsProgress({
+      attempts: newAttempts,
+      triedSelections: nextTriedSelections,
+      failed: isNowFailed,
+    });
+
+    if (isNowFailed) {
+      setSelectedWords([]);
+      setMessage({ text: 'אופס! נגמרו לך הניסיונות 😅', type: 'error' });
+      setTimeout(() => setMessage(null), 2500);
+      return;
+    }
 
     if (almostCorrect) {
       setMessage({ text: 'כמעט! שלושה מתוך ארבעה נכונים', type: 'info' });
@@ -193,6 +213,8 @@ const ConnectionsPage = () => {
   };
 
   const handleHint = () => {
+    if (progress.solved || progress.failed) return;
+
     const storedHintWords = Array.isArray(progress.lastHintWords) ? progress.lastHintWords : [];
 
     const isStoredHintStillValid = () => {
@@ -227,7 +249,7 @@ const ConnectionsPage = () => {
     // Highlight 2 words from this group
     const hintWords = availableFromGroup.slice(0, 2);
     setSelectedWords(hintWords);
-    
+
     updateConnectionsProgress({
       hintsUsed: progress.hintsUsed + 1,
       lastHintWords: hintWords,
@@ -237,7 +259,13 @@ const ConnectionsPage = () => {
     setTimeout(() => setMessage(null), 2000);
   };
 
-  const remainingAttempts = maxAttempts - attempts;
+  const handleRestartConnections = () => {
+    resetConnectionsProgress();
+    setMessage({ text: 'התחלנו מחדש את "מה הקשר?"', type: 'info' });
+    setTimeout(() => setMessage(null), 2000);
+  };
+
+  const remainingAttempts = Math.max(0, maxAttempts - attempts);
 
   return (
     <div className="min-h-screen romantic-gradient px-4 py-6">
@@ -274,6 +302,22 @@ const ConnectionsPage = () => {
           ))}
         </div>
 
+        {progress.failed && !progress.solved && (
+          <div className="mb-4 space-y-3">
+            <div className="text-center p-3 rounded-lg bg-red-900/30 text-red-400">
+              נגמרו לך 6 ניסיונות. אפשר להתחיל מחדש את החידה הזו בלבד.
+            </div>
+            <RomanticButton
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              onClick={handleRestartConnections}
+            >
+              התחל מחדש את "מה הקשר?"
+            </RomanticButton>
+          </div>
+        )}
+
         {/* Solved groups */}
         {solvedGroups.map(({ group, index, colorClass }) => (
           <div
@@ -293,6 +337,7 @@ const ConnectionsPage = () => {
             <button
               key={word}
               onClick={() => handleWordClick(word)}
+              disabled={progress.failed}
               className={`connection-word ${
                 selectedWords.includes(word)
                   ? 'connection-word-selected'
@@ -305,7 +350,7 @@ const ConnectionsPage = () => {
         </div>
 
         {/* Action buttons */}
-        {!progress.solved && availableWords.length > 0 && (
+        {!progress.solved && !progress.failed && availableWords.length > 0 && (
           <div className="space-y-3">
             <div className="flex gap-2">
               <RomanticButton
