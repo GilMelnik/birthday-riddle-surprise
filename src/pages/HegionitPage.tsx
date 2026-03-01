@@ -4,6 +4,8 @@ import { RomanticButton } from '@/components/ui/romantic-button';
 import { ArrowRight, ArrowLeft, ChevronRight, Lightbulb, Check, X } from 'lucide-react';
 import puzzleData from '@/data/puzzles.json';
 
+const reverseString = (value: string) => value.split('').reverse().join('');
+
 const HegionitPage: React.FC = () => {
   const { state, setCurrentPage, updateHegionitProgress } = useGame();
   const { hegionit: progress } = state.progress;
@@ -11,7 +13,8 @@ const HegionitPage: React.FC = () => {
   const riddles = puzzleData.hegionit;
   const currentRiddleIndex = progress.currentRiddle;
   const currentRiddle = riddles[currentRiddleIndex];
-  
+  const normalizedAnswer = reverseString(currentRiddle.answer);
+
   const [inputLetters, setInputLetters] = useState<string[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [lockedIndices, setLockedIndices] = useState<Set<number>>(new Set());
@@ -26,13 +29,13 @@ const HegionitPage: React.FC = () => {
   const decodeAnswer = (saved: string) => saved.split('').map(ch => (ch === EMPTY_SENTINEL ? '' : ch));
 
   // Helper to get answer without spaces
-  const getAnswerWithoutSpaces = () => currentRiddle.answer.replace(/ /g, '');
+  const getAnswerWithoutSpaces = () => normalizedAnswer.replace(/ /g, '');
 
   // --- Reading-order + Hebrew final-letter helpers ---
   // Storage indices (0..N-1) correspond to the answer with spaces removed, in logical word order.
   // Reading order for navigation/hints is: word1 letters right-to-left, then word2 letters right-to-left, etc.
   const getLogicalWordSegments = () => {
-    const words = currentRiddle.answer.split(' ');
+    const words = normalizedAnswer.split(' ');
     const segments: { word: string; startIndex: number; endIndex: number }[] = [];
     let cursor = 0;
     for (const word of words) {
@@ -160,7 +163,7 @@ const HegionitPage: React.FC = () => {
     didInitForRiddle.current = currentRiddleIndex;
   }, [
     currentRiddleIndex,
-    currentRiddle.answer,
+    normalizedAnswer,
     progress.solved,
     progress.solvedLetters,
     progress.lockedIndices,
@@ -359,7 +362,7 @@ const HegionitPage: React.FC = () => {
 
   // Helper to split answer into words and get word boundaries (without spaces in indices)
   const getWordBoundaries = () => {
-    const words = currentRiddle.answer.split(' ');
+    const words = normalizedAnswer.split(' ');
      const boundaries: { word: string; startIndex: number; endIndex: number }[] = [];
      let currentIndex = 0;
 
@@ -417,7 +420,7 @@ const HegionitPage: React.FC = () => {
     return () => ro.disconnect();
   }, []);
 
-  const getWordLengths = () => currentRiddle.answer.split(' ').map(w => w.length).filter(n => n > 0);
+  const getWordLengths = () => normalizedAnswer.split(' ').map(w => w.length).filter(n => n > 0);
 
   const getMaxWordLength = () => {
     const lengths = getWordLengths();
