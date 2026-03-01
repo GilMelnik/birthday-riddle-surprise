@@ -1,18 +1,18 @@
 import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { RomanticButton } from '@/components/ui/romantic-button';
-import puzzleData from '@/data/puzzles.json';
+import wishesData from '@/data/wishes.json';
 
 const FinalPage: React.FC = () => {
   const { setCurrentPage } = useGame();
   
-  const wishes = puzzleData.finalWishes;
+  const wishes = wishesData.final;
 
   return (
     <div className="min-h-screen romantic-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
       <div className="z-10 text-center max-w-md mx-auto">
         <div className="mb-8">
-          <span className="text-7xl inline-block">🎂</span>
+          <span className="text-7xl inline-block">{wishes.heroEmoji}</span>
         </div>
         
         <h1 className="text-4xl sm:text-5xl font-serif font-bold text-foreground mb-8 leading-tight">
@@ -31,11 +31,9 @@ const FinalPage: React.FC = () => {
         
         <div className="space-y-4">
           <div className="flex justify-center gap-4 text-4xl">
-            <span>💕</span>
-            <span>🎁</span>
-            <span>🥳</span>
-            <span>🎈</span>
-            <span>🐶</span>
+            {wishes.emojis.map((emoji, index) => (
+              <span key={`${emoji}-${index}`}>{emoji}</span>
+            ))}
           </div>
           
           <RomanticButton
@@ -44,7 +42,7 @@ const FinalPage: React.FC = () => {
             onClick={() => setCurrentPage('hub')}
             className="mt-8"
           >
-            חזרה למרכז החידות
+            {wishes.backButtonLabel}
           </RomanticButton>
         </div>
       </div>
