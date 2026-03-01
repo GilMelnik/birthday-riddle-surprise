@@ -76,12 +76,13 @@ const ConnectionsPage = () => {
   const { state, setCurrentPage, updateConnectionsProgress, resetConnectionsProgress } = useGame();
   const { connections: progress } = state.progress;
 
-  const { words: allWords, groups } = puzzleData.connections as { words: string[]; groups: Group[] };
+  const { groups } = puzzleData.connections as { groups: Group[] };
+  const allWords = useMemo(() => groups.flatMap(group => group.words), [groups]);
 
   // Shuffle words on initial load, distributing groups across rows
   const shuffledWords = useMemo(() => {
     return distributeWordsAcrossGrid(allWords, groups);
-  }, []);
+  }, [allWords, groups]);
 
   const [availableWords, setAvailableWords] = useState<string[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
