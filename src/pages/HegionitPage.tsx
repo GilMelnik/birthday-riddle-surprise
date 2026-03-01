@@ -5,6 +5,7 @@ import { ArrowRight, ArrowLeft, ChevronRight, Lightbulb, Check, X } from 'lucide
 import puzzleData from '@/data/puzzles.json';
 
 const reverseString = (value: string) => value.split('').reverse().join('');
+const reverseWordOrder = (value: string) => value.split(' ').filter(Boolean).reverse().join(' ');
 
 const HegionitPage: React.FC = () => {
   const { state, setCurrentPage, updateHegionitProgress } = useGame();
@@ -13,7 +14,7 @@ const HegionitPage: React.FC = () => {
   const riddles = puzzleData.hegionit;
   const currentRiddleIndex = progress.currentRiddle;
   const currentRiddle = riddles[currentRiddleIndex];
-  const normalizedAnswer = reverseString(currentRiddle.answer);
+  const normalizedAnswer = reverseString(reverseWordOrder(currentRiddle.answer));
 
   const [inputLetters, setInputLetters] = useState<string[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
