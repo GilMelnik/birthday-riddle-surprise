@@ -39,7 +39,8 @@ const WordlePage: React.FC = () => {
   const { state, setCurrentPage, updateWordleProgress } = useGame();
   const { wordle: progress } = state.progress;
 
-  const targetWord = puzzleData.wordle[0].word;
+  const reverseWord = (word: string): string => Array.from(word).reverse().join('');
+  const targetWord = reverseWord(puzzleData.wordle[0].word);
   const wordLength = 5;
   const maxAttempts = 6;
 
